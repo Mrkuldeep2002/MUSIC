@@ -22,6 +22,7 @@ export function App() {
     sendPlaybackAction,
     changeVideo,
     addToQueue,
+    importPlaylist,
     removeFromQueue,
     nextTrack,
     sendChatMessage,
@@ -53,6 +54,7 @@ export function App() {
           onSendPlaybackAction={sendPlaybackAction}
           onChangeVideo={changeVideo}
           onAddToQueue={addToQueue}
+          onImportPlaylist={importPlaylist}
           onRemoveFromQueue={removeFromQueue}
           onNextTrack={nextTrack}
           onSendChatMessage={sendChatMessage}

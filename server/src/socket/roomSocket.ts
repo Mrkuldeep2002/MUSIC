@@ -160,6 +160,23 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     }
   });
 
+  // Queue: Import playlist
+  socket.on('queue:import-playlist', (payload: { roomId: string; tracks: PlaylistItem[] }) => {
+    const { roomId, tracks } = payload || {};
+    if (!roomId || !tracks || tracks.length === 0) return;
+
+    // Attach user ID who added these tracks
+    tracks.forEach((t) => {
+      t.addedBy = socket.id;
+    });
+
+    const updatedRoom = roomService.importPlaylistToQueue(roomId, tracks);
+    if (updatedRoom) {
+      io.to(updatedRoom.roomId).emit('queue:updated', { queue: updatedRoom.queue, roomId: updatedRoom.roomId });
+      io.to(updatedRoom.roomId).emit('player:state', { playback: updatedRoom.playback, roomId: updatedRoom.roomId });
+    }
+  });
+
   // Queue: Remove track
   socket.on('queue:remove', (payload: { roomId: string; trackId: string }) => {
     const { roomId, trackId } = payload || {};

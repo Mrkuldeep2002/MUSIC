@@ -6,6 +6,7 @@ import { PlayerControls } from '../components/PlayerControls';
 import { Queue } from '../components/Queue';
 import { SearchBar } from '../components/SearchBar';
 import { SearchResults } from '../components/SearchResults';
+import { PlaylistImporter } from '../components/PlaylistImporter';
 import { RoomUsers } from '../components/RoomUsers';
 import { Chat } from '../components/Chat';
 import { Toast } from '../components/Toast';
@@ -25,6 +26,7 @@ interface RoomProps {
   onSendPlaybackAction: (action: 'play' | 'pause' | 'seek', position: number) => void;
   onChangeVideo: (track: PlaylistItem) => void;
   onAddToQueue: (track: PlaylistItem) => void;
+  onImportPlaylist: (tracks: PlaylistItem[]) => void;
   onRemoveFromQueue: (trackId: string) => void;
   onNextTrack: () => void;
   onSendChatMessage: (message: string) => void;
@@ -43,6 +45,7 @@ export const Room: React.FC<RoomProps> = ({
   onSendPlaybackAction,
   onChangeVideo,
   onAddToQueue,
+  onImportPlaylist,
   onRemoveFromQueue,
   onNextTrack,
   onSendChatMessage,
@@ -134,6 +137,9 @@ export const Room: React.FC<RoomProps> = ({
             />
           </div>
         </div>
+
+        {/* Playlist Importer Section */}
+        <PlaylistImporter onImportPlaylist={onImportPlaylist} />
 
         {/* Search Bar & Search Results Section */}
         <div className="glass-panel p-5 border border-slate-800 space-y-4">

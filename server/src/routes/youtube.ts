@@ -19,4 +19,20 @@ router.get('/search', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+router.get('/playlist', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const urlOrId = (req.query.url as string) || (req.query.id as string) || '';
+    if (!urlOrId.trim()) {
+      res.status(400).json({ error: 'Playlist URL or ID is required' });
+      return;
+    }
+
+    const items = await youtubeService.fetchPlaylistItems(urlOrId);
+    res.json({ items });
+  } catch (error: any) {
+    console.error('Playlist router error:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch YouTube playlist' });
+  }
+});
+
 export default router;

@@ -209,6 +209,30 @@ export class RoomService {
     return this.getCalculatedRoomState(roomId)!;
   }
 
+  public importPlaylistToQueue(roomId: string, tracks: PlaylistItem[]): RoomState | null {
+    const room = this.rooms.get(roomId.toUpperCase());
+    if (!room || !tracks || tracks.length === 0) return null;
+
+    // Push all tracks into queue
+    room.queue.push(...tracks);
+
+    // If nothing is currently playing, start playing the first imported track immediately
+    if (!room.playback.videoId && room.queue.length > 0) {
+      const nextTrack = room.queue.shift();
+      if (nextTrack) {
+        room.playback = {
+          videoId: nextTrack.videoId,
+          currentTrack: nextTrack,
+          isPlaying: true,
+          position: 0,
+          updatedAt: Date.now(),
+        };
+      }
+    }
+
+    return this.getCalculatedRoomState(roomId)!;
+  }
+
   public addToQueue(roomId: string, track: PlaylistItem): RoomState | null {
     const room = this.rooms.get(roomId.toUpperCase());
     if (!room) return null;

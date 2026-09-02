@@ -231,6 +231,15 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     [socket, roomState, showToast]
   );
 
+  const importPlaylist = useCallback(
+    (tracks: PlaylistItem[]) => {
+      if (!socket || !roomState || !tracks.length) return;
+      socket.emit('queue:import-playlist', { roomId: roomState.roomId, tracks });
+      showToast(`Imported ${tracks.length} tracks from playlist! 🎉`, 'success');
+    },
+    [socket, roomState, showToast]
+  );
+
   const removeFromQueue = useCallback(
     (trackId: string) => {
       if (!socket || !roomState) return;
@@ -270,6 +279,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     sendPlaybackAction,
     changeVideo,
     addToQueue,
+    importPlaylist,
     removeFromQueue,
     nextTrack,
     sendChatMessage,

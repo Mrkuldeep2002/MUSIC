@@ -148,6 +148,90 @@ export class YouTubeService {
     }
   }
 
+  public extractPlaylistId(input: string): string | null {
+    if (!input || !input.trim()) return null;
+    const trimmed = input.trim();
+
+    // Match query parameter list=
+    const match = trimmed.match(/[?&]list=([^&]+)/);
+    if (match && match[1]) {
+      return match[1];
+    }
+
+    // Match /playlist?list= or /browse/VL...
+    const pathMatch = trimmed.match(/\/playlist\?list=([^&]+)/);
+    if (pathMatch && pathMatch[1]) {
+      return pathMatch[1];
+    }
+
+    // Raw Playlist ID string (e.g. PL..., RD..., OL...)
+    if (/^[A-Za-z0-9_-]{10,}$/.test(trimmed) && !trimmed.includes('/')) {
+      return trimmed;
+    }
+
+    return null;
+  }
+
+  public async fetchPlaylistItems(playlistUrlOrId: string): Promise<PlaylistItem[]> {
+    const playlistId = this.extractPlaylistId(playlistUrlOrId);
+    if (!playlistId) {
+      throw new Error('Invalid YouTube or YouTube Music playlist link/ID');
+    }
+
+    const apiKey = config.youtubeApiKey;
+
+    if (!apiKey) {
+      console.log('ℹ️ YOUTUBE_API_KEY not configured. Returning curated mock playlist items.');
+      return this.getMockPlaylistItems();
+    }
+
+    try {
+      const response = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
+        params: {
+          part: 'snippet',
+          playlistId: playlistId,
+          maxResults: 50,
+          key: apiKey,
+        },
+        timeout: 6000,
+      });
+
+      const items = response.data.items || [];
+      const playlistItems: PlaylistItem[] = items
+        .filter((item: any) => item.snippet && item.snippet.resourceId && item.snippet.resourceId.videoId)
+        .map((item: any, index: number) => ({
+          id: `item-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`,
+          videoId: item.snippet.resourceId.videoId,
+          title: item.snippet.title,
+          channelTitle: item.snippet.videoOwnerChannelTitle || item.snippet.channelTitle || 'YouTube Music',
+          thumbnailUrl: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url || '',
+          duration: '3:30',
+          addedBy: 'playlist',
+        }));
+
+      if (playlistItems.length === 0) {
+        return this.getMockPlaylistItems();
+      }
+
+      return playlistItems;
+    } catch (error: any) {
+      console.warn('⚠️ Failed to fetch YouTube playlist from API. Falling back to mock playlist:', error.message);
+      return this.getMockPlaylistItems();
+    }
+  }
+
+  private getMockPlaylistItems(): PlaylistItem[] {
+    return MOCK_RESULTS.map((item, index) => ({
+      id: `item-mock-${Date.now()}-${index}`,
+      videoId: item.videoId,
+      title: item.title,
+      channelTitle: item.channelTitle,
+      thumbnailUrl: item.thumbnailUrl,
+      duration: item.duration,
+      addedBy: 'playlist',
+    }));
+  }
+
   private filterMockResults(query: string): YouTubeSearchResult[] {
     const q = query.toLowerCase().trim();
     const filtered = MOCK_RESULTS.filter(
