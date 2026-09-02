@@ -148,6 +148,110 @@ export class YouTubeService {
     }
   }
 
+  public extractVideoId(input: string): string | null {
+    if (!input || !input.trim()) return null;
+    const trimmed = input.trim();
+
+    // Match query parameter v=
+    const vMatch = trimmed.match(/[?&]v=([A-Za-z0-9_-]{11})/);
+    if (vMatch && vMatch[1]) {
+      return vMatch[1];
+    }
+
+    // Match short url format https://youtu.be/VIDEO_ID
+    const shortMatch = trimmed.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
+    if (shortMatch && shortMatch[1]) {
+      return shortMatch[1];
+    }
+
+    // Match embed url format https://www.youtube.com/embed/VIDEO_ID
+    const embedMatch = trimmed.match(/\/embed\/([A-Za-z0-9_-]{11})/);
+    if (embedMatch && embedMatch[1]) {
+      return embedMatch[1];
+    }
+
+    return null;
+  }
+
+  public async fetchSingleVideoItem(videoId: string): Promise<PlaylistItem> {
+    const apiKey = config.youtubeApiKey;
+
+    if (apiKey) {
+      try {
+        const response = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+          params: {
+            part: 'snippet',
+            id: videoId,
+            key: apiKey,
+          },
+          timeout: 5000,
+        });
+
+        const item = response.data.items?.[0];
+        if (item && item.snippet) {
+          return {
+            id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            videoId: item.id,
+            title: item.snippet.title,
+            channelTitle: item.snippet.channelTitle || 'YouTube Music',
+            thumbnailUrl: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+            duration: '3:30',
+            addedBy: 'user-link',
+          };
+        }
+      } catch (err) {
+        console.warn('Failed to fetch video details, using clean default title:', err);
+      }
+    }
+
+    // Default fast zero-quota fallback if API key is omitted or error occurs
+    return {
+      id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      videoId: videoId,
+      title: `YouTube Song (${videoId})`,
+      channelTitle: 'YouTube Music',
+      thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      duration: '3:30',
+      addedBy: 'user-link',
+    };
+  }
+
+  public async fetchUniversalMedia(input: string): Promise<PlaylistItem[]> {
+    if (!input || !input.trim()) return [];
+
+    // Check if input is a Single Video link
+    const videoId = this.extractVideoId(input);
+    if (videoId) {
+      const singleItem = await this.fetchSingleVideoItem(videoId);
+      return [singleItem];
+    }
+
+    // Check if input is a Playlist link or ID
+    const playlistId = this.extractPlaylistId(input);
+    if (playlistId) {
+      return this.fetchPlaylistItems(input);
+    }
+
+    // Otherwise treat input as a query search and return top matching track
+    const searchResults = await this.searchVideos(input);
+    if (searchResults && searchResults.length > 0) {
+      const topMatch = searchResults[0];
+      return [
+        {
+          id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          videoId: topMatch.videoId,
+          title: topMatch.title,
+          channelTitle: topMatch.channelTitle,
+          thumbnailUrl: topMatch.thumbnailUrl,
+          duration: topMatch.duration,
+          addedBy: 'search',
+        },
+      ];
+    }
+
+    throw new Error('No matching music, video, or playlist found.');
+  }
+
   public extractPlaylistId(input: string): string | null {
     if (!input || !input.trim()) return null;
     const trimmed = input.trim();

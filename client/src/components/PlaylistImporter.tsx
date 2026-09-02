@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ListPlus, Loader2, Music, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ListPlus, Loader2, Music, CheckCircle2, AlertCircle, Link } from 'lucide-react';
 import { importYouTubePlaylist } from '../services/api';
 import { PlaylistItem } from '../types/room';
 
@@ -29,10 +29,10 @@ export const PlaylistImporter: React.FC<PlaylistImporterProps> = ({ onImportPlay
         setPlaylistInput('');
         setTimeout(() => setSuccessCount(null), 5000);
       } else {
-        setError('No playable tracks found in this playlist.');
+        setError('No playable music, video, or playlist found.');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to import playlist. Please check the URL.');
+      setError(err.message || 'Failed to import media. Please check the URL or link.');
     } finally {
       setIsLoading(false);
     }
@@ -45,11 +45,12 @@ export const PlaylistImporter: React.FC<PlaylistImporterProps> = ({ onImportPlay
           <div className="p-1.5 rounded-lg bg-brand-pink/20 text-brand-pink">
             <ListPlus className="h-4 w-4" />
           </div>
-          <h3 className="text-sm font-semibold text-white">Import YouTube Music Playlist</h3>
+          <h3 className="text-sm font-semibold text-white">Universal Link & Playlist Importer</h3>
         </div>
-        <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-dark-700 text-slate-400">
-          music.youtube.com
-        </span>
+        <div className="flex items-center gap-1.5 text-[11px] font-mono px-2 py-0.5 rounded-full bg-dark-700 text-slate-400">
+          <Link className="h-3 w-3 text-brand-purple" />
+          <span>YouTube & YT Music</span>
+        </div>
       </div>
 
       <form onSubmit={handleImport} className="flex flex-col sm:flex-row gap-2">
@@ -58,7 +59,7 @@ export const PlaylistImporter: React.FC<PlaylistImporterProps> = ({ onImportPlay
             type="text"
             value={playlistInput}
             onChange={(e) => setPlaylistInput(e.target.value)}
-            placeholder="Paste YouTube or YT Music Playlist link (e.g. music.youtube.com/playlist?list=...)"
+            placeholder="Paste any Song, Video, or Playlist link (e.g. music.youtube.com/watch?v=... or playlist?list=...)"
             className="w-full pl-9 pr-3 py-2 bg-dark-800/90 border border-slate-700/70 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-brand-purple focus:ring-1 focus:ring-brand-purple transition-all"
           />
           <Music className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
@@ -77,7 +78,7 @@ export const PlaylistImporter: React.FC<PlaylistImporterProps> = ({ onImportPlay
           ) : (
             <>
               <ListPlus className="h-3.5 w-3.5" />
-              <span>Import Playlist</span>
+              <span>Add to Queue</span>
             </>
           )}
         </button>
@@ -87,7 +88,7 @@ export const PlaylistImporter: React.FC<PlaylistImporterProps> = ({ onImportPlay
       {successCount !== null && (
         <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span>Successfully imported {successCount} tracks into room queue!</span>
+          <span>Added {successCount} {successCount === 1 ? 'track' : 'tracks'} into room queue!</span>
         </div>
       )}
 
