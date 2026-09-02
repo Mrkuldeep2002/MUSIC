@@ -1,4 +1,5 @@
 import { RoomState, RoomUser, PlaylistItem, PlaybackState } from '../types/room.js';
+import { youtubeService } from './youtubeService.js';
 
 // Random display name generator for anonymous users
 const ADJECTIVES = ['Cool', 'Groovy', 'Sonic', 'Vibrant', 'Cosmic', 'Acoustic', 'Electric', 'Melodic', 'Rhythmic', 'Harmonic'];
@@ -54,6 +55,7 @@ export class RoomService {
       queue: [],
       users: [hostUser],
       allowGuestControls: false,
+      autoplayEnabled: true,
       createdAt: Date.now(),
     };
 
@@ -70,18 +72,17 @@ export class RoomService {
     if (!room) return undefined;
 
     const now = Date.now();
-    let currentPosition = room.playback.position;
 
     if (room.playback.isPlaying) {
       const elapsedSeconds = (now - room.playback.updatedAt) / 1000;
-      currentPosition += elapsedSeconds;
+      room.playback.position = Math.max(0, room.playback.position + elapsedSeconds);
+      room.playback.updatedAt = now;
     }
 
     return {
       ...room,
       playback: {
         ...room.playback,
-        position: Math.max(0, currentPosition),
       },
     };
   }
@@ -247,7 +248,14 @@ export class RoomService {
     return this.getCalculatedRoomState(roomId)!;
   }
 
-  public nextTrack(roomId: string, socketId?: string): RoomState | null {
+  public toggleAutoplay(roomId: string, socketId: string, enabled: boolean): RoomState | null {
+    const room = this.rooms.get(roomId.toUpperCase());
+    if (!room || room.hostId !== socketId) return null;
+    room.autoplayEnabled = enabled;
+    return this.getCalculatedRoomState(roomId)!;
+  }
+
+  public async nextTrack(roomId: string, socketId?: string): Promise<RoomState | null> {
     const room = this.rooms.get(roomId.toUpperCase());
     if (!room) return null;
 
@@ -255,7 +263,16 @@ export class RoomService {
       return null;
     }
 
-    const nextTrack = room.queue.shift();
+    let nextTrack = room.queue.shift();
+
+    // If queue is empty, autoplay is enabled, and current track exists -> fetch related track automatically!
+    if (!nextTrack && room.autoplayEnabled !== false && room.playback.currentTrack) {
+      const related = await youtubeService.getRelatedTrack(room.playback.currentTrack);
+      if (related) {
+        nextTrack = related;
+      }
+    }
+
     if (nextTrack) {
       room.playback = {
         videoId: nextTrack.videoId,

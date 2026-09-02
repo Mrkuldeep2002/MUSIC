@@ -1,5 +1,5 @@
 import React from 'react';
-import { ListMusic, Play, Trash2, Disc } from 'lucide-react';
+import { ListMusic, Play, Trash2, Disc, Sparkles } from 'lucide-react';
 import { PlaylistItem, RoomState } from '../types/room';
 
 interface QueueProps {
@@ -8,6 +8,7 @@ interface QueueProps {
   canControlPlayback?: boolean;
   onRemoveFromQueue: (trackId: string) => void;
   onPlayNow: (track: PlaylistItem) => void;
+  onToggleAutoplay?: (enabled: boolean) => void;
 }
 
 export const Queue: React.FC<QueueProps> = ({
@@ -16,18 +17,45 @@ export const Queue: React.FC<QueueProps> = ({
   canControlPlayback = isHost,
   onRemoveFromQueue,
   onPlayNow,
+  onToggleAutoplay,
 }) => {
   const currentTrack = roomState?.playback.currentTrack;
   const queue = roomState?.queue || [];
+  const autoplayEnabled = roomState?.autoplayEnabled !== false;
 
   return (
     <div className="glass-panel p-4 flex flex-col h-full border border-slate-800">
-      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
-        <ListMusic className="h-5 w-5 text-brand-pink" />
-        <h3 className="font-bold text-base text-white">Music Queue</h3>
-        <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-dark-700 text-slate-400 font-mono">
-          {queue.length} up next
-        </span>
+      <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-800">
+        <div className="flex items-center gap-2">
+          <ListMusic className="h-5 w-5 text-brand-pink" />
+          <h3 className="font-bold text-base text-white">Music Queue</h3>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-dark-700 text-slate-400 font-mono">
+            {queue.length}
+          </span>
+        </div>
+
+        {/* Smart Autoplay Toggle */}
+        {isHost ? (
+          <button
+            onClick={() => onToggleAutoplay?.(!autoplayEnabled)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-all ${
+              autoplayEnabled
+                ? 'bg-purple-500/10 border-purple-500/30 text-purple-300 hover:bg-purple-500/20'
+                : 'bg-dark-700/60 border-slate-700/60 text-slate-400 hover:text-slate-200'
+            }`}
+            title="Toggle Smart Autoplay (Auto-fetch Related Songs when Queue is Empty)"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>{autoplayEnabled ? 'Autoplay ON' : 'Autoplay OFF'}</span>
+          </button>
+        ) : (
+          autoplayEnabled && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[11px]">
+              <Sparkles className="h-3 w-3" />
+              <span>Autoplay</span>
+            </span>
+          )
+        )}
       </div>
 
       {/* NOW PLAYING Section */}

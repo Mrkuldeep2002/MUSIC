@@ -188,6 +188,14 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     [socket, roomState]
   );
 
+  const toggleAutoplay = useCallback(
+    (enabled: boolean) => {
+      if (!socket || !roomState) return;
+      socket.emit('room:toggle-autoplay', { roomId: roomState.roomId, enabled });
+    },
+    [socket, roomState]
+  );
+
   const sendPlaybackAction = useCallback(
     (action: 'play' | 'pause' | 'seek', position: number) => {
       if (!socket || !roomState) return;
@@ -258,6 +266,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     joinRoom,
     leaveRoom,
     toggleGuestControls,
+    toggleAutoplay,
     sendPlaybackAction,
     changeVideo,
     addToQueue,

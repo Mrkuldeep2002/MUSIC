@@ -129,6 +129,22 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     }
   });
 
+  // Toggle Smart Autoplay
+  socket.on('room:toggle-autoplay', (payload: { roomId: string; enabled: boolean }) => {
+    const { roomId, enabled } = payload || {};
+    if (!roomId || enabled === undefined) return;
+
+    if (!roomService.isHost(roomId, socket.id)) {
+      socket.emit('error', { message: 'Only the host can toggle autoplay' });
+      return;
+    }
+
+    const updatedRoom = roomService.toggleAutoplay(roomId, socket.id, enabled);
+    if (updatedRoom) {
+      io.to(updatedRoom.roomId).emit('room:updated', { room: updatedRoom });
+    }
+  });
+
   // Queue: Add track
   socket.on('queue:add', (payload: { roomId: string; track: PlaylistItem }) => {
     const { roomId, track } = payload || {};
@@ -156,7 +172,7 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
   });
 
   // Queue: Skip / Next track
-  socket.on('queue:next', (payload: { roomId: string }) => {
+  socket.on('queue:next', async (payload: { roomId: string }) => {
     const { roomId } = payload || {};
     if (!roomId) return;
 
@@ -165,7 +181,7 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
       return;
     }
 
-    const updatedRoom = roomService.nextTrack(roomId, socket.id);
+    const updatedRoom = await roomService.nextTrack(roomId, socket.id);
     if (updatedRoom) {
       io.to(updatedRoom.roomId).emit('player:video-changed', { videoId: updatedRoom.playback.videoId, track: updatedRoom.playback.currentTrack });
       io.to(updatedRoom.roomId).emit('player:state', { playback: updatedRoom.playback, roomId: updatedRoom.roomId });

@@ -18,6 +18,7 @@ export function App() {
     joinRoom,
     leaveRoom,
     toggleGuestControls,
+    toggleAutoplay,
     sendPlaybackAction,
     changeVideo,
     addToQueue,
@@ -48,6 +49,7 @@ export function App() {
           toast={toast}
           onLeaveRoom={leaveRoom}
           onToggleGuestControls={toggleGuestControls}
+          onToggleAutoplay={toggleAutoplay}
           onSendPlaybackAction={sendPlaybackAction}
           onChangeVideo={changeVideo}
           onAddToQueue={addToQueue}

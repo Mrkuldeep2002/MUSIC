@@ -30,6 +30,7 @@ export interface RoomState {
   queue: PlaylistItem[];
   users: RoomUser[];
   allowGuestControls?: boolean;
+  autoplayEnabled?: boolean;
   createdAt: number;
 }
 

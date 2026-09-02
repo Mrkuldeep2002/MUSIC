@@ -21,6 +21,7 @@ interface RoomProps {
   toast: { message: string; type: 'info' | 'success' | 'warning' } | null;
   onLeaveRoom: () => void;
   onToggleGuestControls: (allow: boolean) => void;
+  onToggleAutoplay: (enabled: boolean) => void;
   onSendPlaybackAction: (action: 'play' | 'pause' | 'seek', position: number) => void;
   onChangeVideo: (track: PlaylistItem) => void;
   onAddToQueue: (track: PlaylistItem) => void;
@@ -38,6 +39,7 @@ export const Room: React.FC<RoomProps> = ({
   toast,
   onLeaveRoom,
   onToggleGuestControls,
+  onToggleAutoplay,
   onSendPlaybackAction,
   onChangeVideo,
   onAddToQueue,
@@ -128,6 +130,7 @@ export const Room: React.FC<RoomProps> = ({
               canControlPlayback={canControlPlayback}
               onRemoveFromQueue={onRemoveFromQueue}
               onPlayNow={onChangeVideo}
+              onToggleAutoplay={onToggleAutoplay}
             />
           </div>
         </div>

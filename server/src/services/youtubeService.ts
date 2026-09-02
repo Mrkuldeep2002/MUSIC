@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { config } from '../config.js';
-import { YouTubeSearchResult } from '../types/room.js';
+import { YouTubeSearchResult, PlaylistItem } from '../types/room.js';
 
 // Curated high quality mock search fallback list
 const MOCK_RESULTS: YouTubeSearchResult[] = [
@@ -99,6 +99,52 @@ export class YouTubeService {
     } catch (error: any) {
       console.warn('⚠️ YouTube Data API error or quota limit reached. Falling back to mock results:', error.message);
       return this.filterMockResults(query);
+    }
+  }
+
+  public async getRelatedTrack(currentTrack: PlaylistItem): Promise<PlaylistItem | null> {
+    if (!currentTrack) return null;
+
+    try {
+      const searchQuery = currentTrack.channelTitle || currentTrack.title.split('-')[0] || currentTrack.title;
+      const results = await this.searchVideos(`${searchQuery} song`);
+
+      const candidate = results.find((r) => r.videoId !== currentTrack.videoId) || results[0];
+
+      if (!candidate || candidate.videoId === currentTrack.videoId) {
+        const otherMock = MOCK_RESULTS.find((m) => m.videoId !== currentTrack.videoId) || MOCK_RESULTS[0];
+        return {
+          id: `autoplay-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          videoId: otherMock.videoId,
+          title: otherMock.title,
+          channelTitle: otherMock.channelTitle,
+          thumbnailUrl: otherMock.thumbnailUrl,
+          duration: otherMock.duration,
+          addedBy: 'autoplay',
+        };
+      }
+
+      return {
+        id: `autoplay-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        videoId: candidate.videoId,
+        title: candidate.title,
+        channelTitle: candidate.channelTitle,
+        thumbnailUrl: candidate.thumbnailUrl,
+        duration: candidate.duration,
+        addedBy: 'autoplay',
+      };
+    } catch (err) {
+      console.warn('Failed to fetch related track, using fallback:', err);
+      const otherMock = MOCK_RESULTS.find((m) => m.videoId !== currentTrack.videoId) || MOCK_RESULTS[0];
+      return {
+        id: `autoplay-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        videoId: otherMock.videoId,
+        title: otherMock.title,
+        channelTitle: otherMock.channelTitle,
+        thumbnailUrl: otherMock.thumbnailUrl,
+        duration: otherMock.duration,
+        addedBy: 'autoplay',
+      };
     }
   }
 
