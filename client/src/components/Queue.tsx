@@ -5,6 +5,7 @@ import { PlaylistItem, RoomState } from '../types/room';
 interface QueueProps {
   roomState: RoomState | null;
   isHost: boolean;
+  canControlPlayback?: boolean;
   onRemoveFromQueue: (trackId: string) => void;
   onPlayNow: (track: PlaylistItem) => void;
 }
@@ -12,6 +13,7 @@ interface QueueProps {
 export const Queue: React.FC<QueueProps> = ({
   roomState,
   isHost,
+  canControlPlayback = isHost,
   onRemoveFromQueue,
   onPlayNow,
 }) => {
@@ -85,7 +87,7 @@ export const Queue: React.FC<QueueProps> = ({
 
               {/* Action Buttons */}
               <div className="flex items-center gap-1 opacity-90 group-hover:opacity-100">
-                {isHost && (
+                {canControlPlayback && (
                   <button
                     onClick={() => onPlayNow(item)}
                     className="p-1.5 hover:bg-brand-purple/20 text-brand-purple rounded-lg transition-colors"

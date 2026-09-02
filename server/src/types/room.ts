@@ -29,6 +29,7 @@ export interface RoomState {
   playback: PlaybackState;
   queue: PlaylistItem[];
   users: RoomUser[];
+  allowGuestControls?: boolean;
   createdAt: number;
 }
 

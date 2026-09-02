@@ -48,13 +48,13 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     handleUserLeave(io, socket);
   });
 
-  // Host playback controls: Play
+  // Playback controls: Play
   socket.on('player:play', (payload: { roomId: string; position?: number }) => {
     const { roomId, position } = payload || {};
     if (!roomId) return;
 
-    if (!roomService.isHost(roomId, socket.id)) {
-      socket.emit('error', { message: 'Only the host can control playback' });
+    if (!roomService.canControlPlayback(roomId, socket.id)) {
+      socket.emit('error', { message: 'You do not have permission to control playback' });
       return;
     }
 
@@ -64,13 +64,13 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     }
   });
 
-  // Host playback controls: Pause
+  // Playback controls: Pause
   socket.on('player:pause', (payload: { roomId: string; position?: number }) => {
     const { roomId, position } = payload || {};
     if (!roomId) return;
 
-    if (!roomService.isHost(roomId, socket.id)) {
-      socket.emit('error', { message: 'Only the host can control playback' });
+    if (!roomService.canControlPlayback(roomId, socket.id)) {
+      socket.emit('error', { message: 'You do not have permission to control playback' });
       return;
     }
 
@@ -80,13 +80,13 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     }
   });
 
-  // Host playback controls: Seek
+  // Playback controls: Seek
   socket.on('player:seek', (payload: { roomId: string; position: number }) => {
     const { roomId, position } = payload || {};
     if (!roomId || position === undefined) return;
 
-    if (!roomService.isHost(roomId, socket.id)) {
-      socket.emit('error', { message: 'Only the host can seek' });
+    if (!roomService.canControlPlayback(roomId, socket.id)) {
+      socket.emit('error', { message: 'You do not have permission to seek' });
       return;
     }
 
@@ -101,8 +101,8 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     const { roomId, videoId, track } = payload || {};
     if (!roomId || !videoId) return;
 
-    if (!roomService.isHost(roomId, socket.id)) {
-      socket.emit('error', { message: 'Only the host can change tracks' });
+    if (!roomService.canControlPlayback(roomId, socket.id)) {
+      socket.emit('error', { message: 'You do not have permission to change tracks' });
       return;
     }
 
@@ -110,6 +110,22 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     if (updatedRoom) {
       io.to(updatedRoom.roomId).emit('player:video-changed', { videoId, track: updatedRoom.playback.currentTrack });
       io.to(updatedRoom.roomId).emit('player:state', { playback: updatedRoom.playback, roomId: updatedRoom.roomId });
+    }
+  });
+
+  // Toggle Guest Controls Permission
+  socket.on('room:toggle-guest-controls', (payload: { roomId: string; allow: boolean }) => {
+    const { roomId, allow } = payload || {};
+    if (!roomId || allow === undefined) return;
+
+    if (!roomService.isHost(roomId, socket.id)) {
+      socket.emit('error', { message: 'Only the host can change permissions' });
+      return;
+    }
+
+    const updatedRoom = roomService.toggleGuestControls(roomId, socket.id, allow);
+    if (updatedRoom) {
+      io.to(updatedRoom.roomId).emit('room:updated', { room: updatedRoom });
     }
   });
 
@@ -144,8 +160,8 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     const { roomId } = payload || {};
     if (!roomId) return;
 
-    if (!roomService.isHost(roomId, socket.id)) {
-      socket.emit('error', { message: 'Only the host can skip tracks' });
+    if (!roomService.canControlPlayback(roomId, socket.id)) {
+      socket.emit('error', { message: 'You do not have permission to skip tracks' });
       return;
     }
 

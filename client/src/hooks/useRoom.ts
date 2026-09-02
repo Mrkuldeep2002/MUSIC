@@ -120,6 +120,11 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
       setRoomState((prev) => (prev ? { ...prev, queue: data.queue } : null));
     });
 
+    // Room updated
+    socket.on('room:updated', (data: { room: RoomState }) => {
+      setRoomState(data.room);
+    });
+
     // Chat message
     socket.on('chat:message', (msg: ChatMessage) => {
       setChatMessages((prev) => [...prev, msg]);
@@ -141,6 +146,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
       socket.off('player:state');
       socket.off('player:video-changed');
       socket.off('queue:updated');
+      socket.off('room:updated');
       socket.off('chat:message');
       socket.off('error');
     };
@@ -173,6 +179,14 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     setCurrentUser(null);
     setChatMessages([]);
   }, [socket]);
+
+  const toggleGuestControls = useCallback(
+    (allow: boolean) => {
+      if (!socket || !roomState) return;
+      socket.emit('room:toggle-guest-controls', { roomId: roomState.roomId, allow });
+    },
+    [socket, roomState]
+  );
 
   const sendPlaybackAction = useCallback(
     (action: 'play' | 'pause' | 'seek', position: number) => {
@@ -230,16 +244,20 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     [socket, roomState]
   );
 
+  const canControlPlayback = isHost || !!roomState?.allowGuestControls;
+
   return {
     roomState,
     currentUser,
     isHost,
+    canControlPlayback,
     chatMessages,
     errorMessage,
     toast,
     createRoom,
     joinRoom,
     leaveRoom,
+    toggleGuestControls,
     sendPlaybackAction,
     changeVideo,
     addToQueue,

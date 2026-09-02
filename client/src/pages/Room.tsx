@@ -16,9 +16,11 @@ interface RoomProps {
   roomState: RoomState;
   currentUser: RoomUser | null;
   isHost: boolean;
+  canControlPlayback: boolean;
   chatMessages: ChatMessage[];
   toast: { message: string; type: 'info' | 'success' | 'warning' } | null;
   onLeaveRoom: () => void;
+  onToggleGuestControls: (allow: boolean) => void;
   onSendPlaybackAction: (action: 'play' | 'pause' | 'seek', position: number) => void;
   onChangeVideo: (track: PlaylistItem) => void;
   onAddToQueue: (track: PlaylistItem) => void;
@@ -31,9 +33,11 @@ export const Room: React.FC<RoomProps> = ({
   roomState,
   currentUser,
   isHost,
+  canControlPlayback,
   chatMessages,
   toast,
   onLeaveRoom,
+  onToggleGuestControls,
   onSendPlaybackAction,
   onChangeVideo,
   onAddToQueue,
@@ -61,6 +65,7 @@ export const Room: React.FC<RoomProps> = ({
     containerId: 'youtube-player-iframe',
     playback: roomState.playback,
     isHost,
+    canControlPlayback,
     onStateChangeByHost: onSendPlaybackAction,
     onVideoEnd: onNextTrack,
   });
@@ -105,10 +110,13 @@ export const Room: React.FC<RoomProps> = ({
               currentTime={currentTime}
               duration={duration}
               isHost={isHost}
+              canControlPlayback={canControlPlayback}
+              allowGuestControls={!!roomState.allowGuestControls}
               onPlay={play}
               onPause={pause}
               onSeek={seek}
               onNextTrack={onNextTrack}
+              onToggleGuestControls={onToggleGuestControls}
             />
           </div>
 
@@ -117,6 +125,7 @@ export const Room: React.FC<RoomProps> = ({
             <Queue
               roomState={roomState}
               isHost={isHost}
+              canControlPlayback={canControlPlayback}
               onRemoveFromQueue={onRemoveFromQueue}
               onPlayNow={onChangeVideo}
             />
@@ -131,6 +140,7 @@ export const Room: React.FC<RoomProps> = ({
             isLoading={isSearching}
             error={searchError}
             isHost={isHost}
+            canControlPlayback={canControlPlayback}
             onSelectTrack={onChangeVideo}
             onAddToQueue={onAddToQueue}
           />

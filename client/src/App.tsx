@@ -11,11 +11,13 @@ export function App() {
     roomState,
     currentUser,
     isHost,
+    canControlPlayback,
     chatMessages,
     toast,
     createRoom,
     joinRoom,
     leaveRoom,
+    toggleGuestControls,
     sendPlaybackAction,
     changeVideo,
     addToQueue,
@@ -41,9 +43,11 @@ export function App() {
           roomState={roomState}
           currentUser={currentUser}
           isHost={isHost}
+          canControlPlayback={canControlPlayback}
           chatMessages={chatMessages}
           toast={toast}
           onLeaveRoom={leaveRoom}
+          onToggleGuestControls={toggleGuestControls}
           onSendPlaybackAction={sendPlaybackAction}
           onChangeVideo={changeVideo}
           onAddToQueue={addToQueue}

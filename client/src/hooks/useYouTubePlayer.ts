@@ -12,6 +12,7 @@ interface UseYouTubePlayerProps {
   containerId: string;
   playback: PlaybackState | null;
   isHost: boolean;
+  canControlPlayback?: boolean;
   onStateChangeByHost?: (action: 'play' | 'pause' | 'seek', position: number) => void;
   onVideoEnd?: () => void;
 }
@@ -20,6 +21,7 @@ export function useYouTubePlayer({
   containerId,
   playback,
   isHost,
+  canControlPlayback = isHost,
   onStateChangeByHost,
   onVideoEnd,
 }: UseYouTubePlayerProps) {
@@ -192,38 +194,38 @@ export function useYouTubePlayer({
     return () => clearInterval(interval);
   }, [isReady]);
 
-  // User interactive triggers (Host actions)
+  // User interactive triggers (Host or Authorized Guest actions)
   const play = useCallback(() => {
     if (playerRef.current && typeof playerRef.current.playVideo === 'function') {
       playerRef.current.playVideo();
       setNeedsUserInteraction(false);
-      if (isHost && onStateChangeByHost) {
+      if (canControlPlayback && onStateChangeByHost) {
         const time = playerRef.current.getCurrentTime() || 0;
         onStateChangeByHost('play', time);
       }
     }
-  }, [isHost, onStateChangeByHost]);
+  }, [canControlPlayback, onStateChangeByHost]);
 
   const pause = useCallback(() => {
     if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
       playerRef.current.pauseVideo();
-      if (isHost && onStateChangeByHost) {
+      if (canControlPlayback && onStateChangeByHost) {
         const time = playerRef.current.getCurrentTime() || 0;
         onStateChangeByHost('pause', time);
       }
     }
-  }, [isHost, onStateChangeByHost]);
+  }, [canControlPlayback, onStateChangeByHost]);
 
   const seek = useCallback(
     (seconds: number) => {
       if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
         playerRef.current.seekTo(seconds, true);
-        if (isHost && onStateChangeByHost) {
+        if (canControlPlayback && onStateChangeByHost) {
           onStateChangeByHost('seek', seconds);
         }
       }
     },
-    [isHost, onStateChangeByHost]
+    [canControlPlayback, onStateChangeByHost]
   );
 
   const enableAudioAndSync = useCallback(() => {

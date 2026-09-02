@@ -7,6 +7,7 @@ interface SearchResultsProps {
   isLoading: boolean;
   error: string | null;
   isHost: boolean;
+  canControlPlayback?: boolean;
   onSelectTrack: (track: PlaylistItem) => void;
   onAddToQueue: (track: PlaylistItem) => void;
 }
@@ -16,6 +17,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   isLoading,
   error,
   isHost,
+  canControlPlayback = isHost,
   onSelectTrack,
   onAddToQueue,
 }) => {
@@ -96,7 +98,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
               {/* Action Buttons */}
               <div className="flex flex-col gap-1.5 flex-shrink-0">
-                {isHost && (
+                {canControlPlayback && (
                   <button
                     onClick={() => onSelectTrack(playlistItem)}
                     className="p-2 rounded-lg bg-brand-purple hover:bg-purple-600 text-white shadow-md shadow-brand-purple/20 transition-all flex items-center justify-center"

@@ -53,6 +53,7 @@ export class RoomService {
       playback: initialPlayback,
       queue: [],
       users: [hostUser],
+      allowGuestControls: false,
       createdAt: Date.now(),
     };
 
@@ -152,6 +153,19 @@ export class RoomService {
     return !!room && room.hostId === socketId;
   }
 
+  public canControlPlayback(roomId: string, socketId: string): boolean {
+    const room = this.rooms.get(roomId.toUpperCase());
+    if (!room) return false;
+    return room.hostId === socketId || !!room.allowGuestControls;
+  }
+
+  public toggleGuestControls(roomId: string, socketId: string, allow: boolean): RoomState | null {
+    const room = this.rooms.get(roomId.toUpperCase());
+    if (!room || room.hostId !== socketId) return null;
+    room.allowGuestControls = allow;
+    return this.getCalculatedRoomState(roomId)!;
+  }
+
   public updatePlayback(
     roomId: string,
     socketId: string,
@@ -161,8 +175,8 @@ export class RoomService {
     const room = this.rooms.get(roomId.toUpperCase());
     if (!room) return null;
 
-    // Enforce host authorization for playback state mutation
-    if (room.hostId !== socketId) {
+    // Enforce host or guest controls authorization for playback state mutation
+    if (!this.canControlPlayback(roomId, socketId)) {
       return null;
     }
 
@@ -237,7 +251,7 @@ export class RoomService {
     const room = this.rooms.get(roomId.toUpperCase());
     if (!room) return null;
 
-    if (socketId && room.hostId !== socketId) {
+    if (socketId && !this.canControlPlayback(roomId, socketId)) {
       return null;
     }
 
