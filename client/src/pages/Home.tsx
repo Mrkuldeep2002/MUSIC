@@ -10,7 +10,9 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ errorMessage, toast, onCreateRoom, onJoinRoom }) => {
-  const [userName, setUserName] = useState('');
+  const [userName, setUserName] = useState(() => {
+    return localStorage.getItem('wesync_user_name') || localStorage.getItem('synctune_user_name') || '';
+  });
   const [roomCode, setRoomCode] = useState('');
   const [showJoinModal, setShowJoinModal] = useState(false);
 
@@ -24,15 +26,28 @@ export const Home: React.FC<HomeProps> = ({ errorMessage, toast, onCreateRoom, o
     }
   }, []);
 
+  const handleUserNameChange = (val: string) => {
+    setUserName(val);
+    if (val.trim()) {
+      localStorage.setItem('wesync_user_name', val.trim());
+    }
+  };
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    onCreateRoom(userName);
+    if (userName.trim()) {
+      localStorage.setItem('wesync_user_name', userName.trim());
+    }
+    onCreateRoom(userName.trim());
   };
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (userName.trim()) {
+      localStorage.setItem('wesync_user_name', userName.trim());
+    }
     if (roomCode.trim()) {
-      onJoinRoom(roomCode.trim().toUpperCase(), userName);
+      onJoinRoom(roomCode.trim().toUpperCase(), userName.trim());
     }
   };
 
@@ -80,7 +95,7 @@ export const Home: React.FC<HomeProps> = ({ errorMessage, toast, onCreateRoom, o
           <input
             type="text"
             value={userName}
-            onChange={(e) => setUserName(e.target.value)}
+            onChange={(e) => handleUserNameChange(e.target.value)}
             placeholder="e.g. Rahul, Aman, DJ Sonic"
             className="w-full bg-dark-900 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 mb-6 transition-all"
           />

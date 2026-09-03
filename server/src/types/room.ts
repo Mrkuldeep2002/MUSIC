@@ -31,6 +31,7 @@ export interface RoomState {
   users: RoomUser[];
   allowGuestControls?: boolean;
   autoplayEnabled?: boolean;
+  messages?: ChatMessage[];
   createdAt: number;
 }
 

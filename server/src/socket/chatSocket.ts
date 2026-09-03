@@ -45,6 +45,7 @@ export function setupChatSocket(io: Server, socket: Socket): void {
         timestamp: now,
       };
 
+      roomService.addChatMessage(room.roomId, chatMessage);
       io.to(room.roomId).emit('chat:message', chatMessage);
     } catch (err: any) {
       console.error('Chat error:', err);

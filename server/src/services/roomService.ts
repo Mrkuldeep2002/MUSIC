@@ -1,4 +1,4 @@
-import { RoomState, RoomUser, PlaylistItem, PlaybackState } from '../types/room.js';
+import { RoomState, RoomUser, PlaylistItem, PlaybackState, ChatMessage } from '../types/room.js';
 import { youtubeService } from './youtubeService.js';
 
 // Random display name generator for anonymous users
@@ -57,6 +57,7 @@ export class RoomService {
       users: [hostUser],
       allowGuestControls: true,
       autoplayEnabled: false,
+      messages: [],
       createdAt: Date.now(),
     };
 
@@ -265,6 +266,21 @@ export class RoomService {
 
     room.queue = [];
     return this.getCalculatedRoomState(roomId)!;
+  }
+
+  public addChatMessage(roomId: string, message: ChatMessage): void {
+    const room = this.rooms.get(roomId.toUpperCase());
+    if (!room) return;
+
+    if (!room.messages) {
+      room.messages = [];
+    }
+
+    room.messages.push(message);
+    // Keep max 100 recent messages in memory
+    if (room.messages.length > 100) {
+      room.messages = room.messages.slice(-100);
+    }
   }
 
   public importPlaylistToQueue(roomId: string, tracks: PlaylistItem[]): RoomState | null {

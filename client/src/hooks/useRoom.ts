@@ -44,6 +44,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     socket.on('room:created', (data: { room: RoomState; user: RoomUser }) => {
       setRoomState(data.room);
       setCurrentUser(data.user);
+      if (data.room.messages) setChatMessages(data.room.messages);
       sessionStorage.setItem('wesync_room_id', data.room.roomId);
       if (data.user.name) localStorage.setItem('wesync_user_name', data.user.name);
       window.history.replaceState({}, '', `/?room=${data.room.roomId}`);
@@ -54,6 +55,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     socket.on('room:joined', (data: { room: RoomState; user: RoomUser }) => {
       setRoomState(data.room);
       setCurrentUser(data.user);
+      if (data.room.messages) setChatMessages(data.room.messages);
       sessionStorage.setItem('wesync_room_id', data.room.roomId);
       if (data.user.name) localStorage.setItem('wesync_user_name', data.user.name);
       window.history.replaceState({}, '', `/?room=${data.room.roomId}`);
