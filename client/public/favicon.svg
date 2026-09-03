@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="wesync-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="50%" stop-color="#ec4899" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <!-- Background Rounded Rect -->
+  <rect width="512" height="512" rx="128" fill="url(#wesync-grad)" />
+  
+  <!-- Glowing Overlay -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#ffffff" stroke-opacity="0.15" stroke-width="8" />
+
+  <!-- Music Notes & Heart Sync Symbol -->
+  <g filter="url(#shadow)">
+    <path d="M370 140 v170 c0 26.5-21.5 48-48 48 s-48-21.5-48-48 21.5-48 48-48 c9 0 17.5 2.5 24 7V205 L210 235 v125 c0 26.5-21.5 48-48 48 s-48-21.5-48-48 21.5-48 48-48 c9 0 17.5 2.5 24 7 V140 l186 -40 z" fill="#ffffff" />
+  </g>
+</svg>

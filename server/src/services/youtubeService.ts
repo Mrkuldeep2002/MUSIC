@@ -2,63 +2,184 @@ import axios from 'axios';
 import { config } from '../config.js';
 import { YouTubeSearchResult, PlaylistItem } from '../types/room.js';
 
-// Curated high quality mock search fallback list
+// Curated high quality mock search fallback list (Complete 25 Songs from Dhurandhar 1 & Dhurandhar The Revenge Official YouTube Music Playlists)
 const MOCK_RESULTS: YouTubeSearchResult[] = [
+  // Dhurandhar 1 (Album 1)
   {
-    videoId: 'BddP6PYo2gs',
-    title: 'Kesariya - Brahmāstra | Ranbir Kapoor | Alia Bhatt | Pritam | Arijit Singh | Amitabh B',
-    channelTitle: 'Sony Music India',
-    thumbnailUrl: 'https://i.ytimg.com/vi/BddP6PYo2gs/hqdefault.jpg',
-    duration: '4:28',
+    videoId: 'WzoSWtDDo1M',
+    title: 'Dhurandhar - Title Track',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/WzoSWtDDo1M/hqdefault.jpg',
+    duration: '3:30',
   },
   {
-    videoId: 'RLzC55ai0eo',
-    title: 'Heeriye (Official Video) Jasleen Royal ft Arijit Singh | Dulquer Salmaan | Aditya Sharma',
-    channelTitle: 'Jasleen Royal',
-    thumbnailUrl: 'https://i.ytimg.com/vi/RLzC55ai0eo/hqdefault.jpg',
-    duration: '3:15',
+    videoId: '_dV23pgH3Ng',
+    title: 'Ishq Jalakar - Karvaan (Dhurandhar 1)',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/_dV23pgH3Ng/hqdefault.jpg',
+    duration: '3:30',
   },
   {
-    videoId: 'g6fnFALEseU',
-    title: 'Apna Bana Le - Bhediya | Varun Dhawan, Kriti Sanon | Sachin-Jigar, Arijit Singh, Amitabh B',
-    channelTitle: 'Zee Music Company',
-    thumbnailUrl: 'https://i.ytimg.com/vi/g6fnFALEseU/hqdefault.jpg',
-    duration: '4:21',
+    videoId: '-_1sK2TGKBE',
+    title: 'Gehra Hua (Dhurandhar 1)',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/-_1sK2TGKBE/hqdefault.jpg',
+    duration: '3:30',
   },
   {
-    videoId: 'gJlXRTI4u7U',
-    title: 'Anuv Jain - HUSN (Official Video)',
-    channelTitle: 'Anuv Jain',
-    thumbnailUrl: 'https://i.ytimg.com/vi/gJlXRTI4u7U/hqdefault.jpg',
-    duration: '3:38',
+    videoId: 'DbrnTlzo3rE',
+    title: 'Teri Ni Kararan (Dhurandhar 1)',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/DbrnTlzo3rE/hqdefault.jpg',
+    duration: '3:30',
   },
   {
-    videoId: 'cUM9s-vI3cE',
-    title: 'O Maahi (Full Video) Dunki | Shah Rukh Khan | Taapsee | Pritam | Arijit Singh | Javed I',
-    channelTitle: 'T-Series',
-    thumbnailUrl: 'https://i.ytimg.com/vi/cUM9s-vI3cE/hqdefault.jpg',
-    duration: '3:53',
+    videoId: 'IGtIUhNprbk',
+    title: 'Run Down The City - Monica (Dhurandhar 1)',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/IGtIUhNprbk/hqdefault.jpg',
+    duration: '3:30',
   },
   {
-    videoId: 'jfKfPfyJRdk',
-    title: 'lofi hip hop radio 📚 - beats to relax/study to',
-    channelTitle: 'Lofi Girl',
-    thumbnailUrl: 'https://i.ytimg.com/vi/jfKfPfyJRdk/hqdefault.jpg',
-    duration: 'LIVE',
+    videoId: 'Jxueyl2VMEI',
+    title: 'Shararat (Dhurandhar 1)',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/Jxueyl2VMEI/hqdefault.jpg',
+    duration: '3:30',
   },
   {
-    videoId: '2v8urP5qA9M',
-    title: 'Chaleya - Jawan | Shah Rukh Khan | Nayanthara | Atlee | Anirudh | Arijit Singh | Shilpa',
-    channelTitle: 'T-Series',
-    thumbnailUrl: 'https://i.ytimg.com/vi/2v8urP5qA9M/hqdefault.jpg',
-    duration: '3:20',
+    videoId: 'DgdqPbV2fps',
+    title: 'Ez-Ez (Dhurandhar 1)',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/DgdqPbV2fps/hqdefault.jpg',
+    duration: '3:30',
   },
   {
-    videoId: 'T94PHkuydcw',
-    title: 'Tauba Tauba | Bad Newz | Vicky Kaushal | Triptii Dimri | Karan Aujla',
-    channelTitle: 'Saregama Music',
-    thumbnailUrl: 'https://i.ytimg.com/vi/T94PHkuydcw/hqdefault.jpg',
-    duration: '3:27',
+    videoId: '84Lc9SYzGSM',
+    title: 'Lutt Le Gaya (Dhurandhar 1)',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/84Lc9SYzGSM/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'CFM3r9TEKXc',
+    title: 'Move - Yeh Ishq Ishq (Dhurandhar 1)',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/CFM3r9TEKXc/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'hzXex0AwK24',
+    title: 'Naal Nachna (Dhurandhar 1)',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/hzXex0AwK24/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'IfJel-as0cg',
+    title: 'Ramba Ho (Dhurandhar 1)',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/IfJel-as0cg/hqdefault.jpg',
+    duration: '3:30',
+  },
+  // Dhurandhar 2 (The Revenge)
+  {
+    videoId: 'x3_DlgoOXrQ',
+    title: 'Dhurandhar The Revenge - Aari Aari',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/x3_DlgoOXrQ/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: '0o1tpI7jRsE',
+    title: 'Main Aur Tu (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/0o1tpI7jRsE/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'Cc5oZAR4E6Y',
+    title: 'Jaan Se Guzarte Hain (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/Cc5oZAR4E6Y/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'BS8il9QTp6c',
+    title: 'Aakhri Ishq (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/BS8il9QTp6c/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'N0CsVUst5Ug',
+    title: 'Wild Ride (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/N0CsVUst5Ug/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'BuQgRwVJglY',
+    title: 'Vaari Jaavan (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/BuQgRwVJglY/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'K7oVZub2KmM',
+    title: 'Phir Se (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/K7oVZub2KmM/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'C7xkqKq9Z14',
+    title: 'Didi (Sher-E-Baloch) (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/C7xkqKq9Z14/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'siIClkiNHDg',
+    title: 'Destiny - Mann Atkeya (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/siIClkiNHDg/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'gw1z1d4QpWs',
+    title: 'Rang De Lal (Oye Oye) (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/gw1z1d4QpWs/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'MeG-pMSwRsA',
+    title: 'Jaiye Sajana (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/MeG-pMSwRsA/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: '4hXiom9gnhw',
+    title: 'Tere Ishq Ne (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/4hXiom9gnhw/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: 'WOrvX3cZj4I',
+    title: 'Hum Pyaar Karne Wale (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/WOrvX3cZj4I/hqdefault.jpg',
+    duration: '3:30',
+  },
+  {
+    videoId: '-dEfIgb8mp8',
+    title: 'Kanhaiyya (From "Dhurandhar The Revenge")',
+    channelTitle: 'Shashwat Sachdev',
+    thumbnailUrl: 'https://i.ytimg.com/vi/-dEfIgb8mp8/hqdefault.jpg',
+    duration: '3:30',
   },
 ];
 
@@ -71,7 +192,7 @@ export class YouTubeService {
     const apiKey = config.youtubeApiKey;
 
     if (!apiKey) {
-      console.log('ℹ️ YOUTUBE_API_KEY not configured. Returning curated mock results.');
+      console.log('ℹ️ YOUTUBE_API_KEY not configured. Returning curated Dhurandhar mock results.');
       return this.filterMockResults(query);
     }
 
@@ -97,7 +218,7 @@ export class YouTubeService {
         thumbnailUrl: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url || '',
       }));
     } catch (error: any) {
-      console.warn('⚠️ YouTube Data API error or quota limit reached. Falling back to mock results:', error.message);
+      console.warn('⚠️ YouTube Data API error or quota limit reached. Falling back to Dhurandhar mock results:', error.message);
       return this.filterMockResults(query);
     }
   }

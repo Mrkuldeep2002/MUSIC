@@ -63,5 +63,5 @@ io.on('connection', (socket) => {
 });
 
 httpServer.listen(config.port, () => {
-  console.log(`🚀 SyncTune Server running on http://localhost:${config.port}`);
+  console.log(`🚀 WeSync Server running on http://localhost:${config.port}`);
 });

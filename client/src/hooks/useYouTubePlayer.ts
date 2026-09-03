@@ -35,6 +35,24 @@ export function useYouTubePlayer({
   const [embedError, setEmbedError] = useState<string | null>(null);
 
   const lastVideoIdRef = useRef<string | null>(null);
+  const isSyncingFromServerRef = useRef<boolean>(false);
+  const lastKnownTimeRef = useRef<number>(0);
+
+  // Refs for callbacks and props to avoid stale closures inside YT Player API callbacks
+  const canControlPlaybackRef = useRef<boolean>(canControlPlayback);
+  canControlPlaybackRef.current = canControlPlayback;
+
+  const onStateChangeByHostRef = useRef<typeof onStateChangeByHost>(onStateChangeByHost);
+  onStateChangeByHostRef.current = onStateChangeByHost;
+
+  const isHostRef = useRef<boolean>(isHost);
+  isHostRef.current = isHost;
+
+  const onVideoEndRef = useRef<typeof onVideoEnd>(onVideoEnd);
+  onVideoEndRef.current = onVideoEnd;
+
+  const playbackRef = useRef<PlaybackState | null>(playback);
+  playbackRef.current = playback;
 
   // Load YouTube IFrame API script dynamically
   useEffect(() => {
@@ -85,23 +103,47 @@ export function useYouTubePlayer({
           console.log('🎬 YouTube IFrame Player Ready');
         },
         onStateChange: (event: any) => {
+          const player = playerRef.current;
+          const localTime = player && typeof player.getCurrentTime === 'function' ? player.getCurrentTime() || 0 : 0;
+
           if (event.data === window.YT.PlayerState.PLAYING) {
             setIsPlaying(true);
             setNeedsUserInteraction(false);
             setEmbedError(null);
+
+            // Capture play click inside native YouTube controls
+            if (!isSyncingFromServerRef.current) {
+              if (canControlPlaybackRef.current && onStateChangeByHostRef.current) {
+                console.log('▶️ Native YouTube Play clicked. Broadcasting to room...');
+                onStateChangeByHostRef.current('play', localTime);
+              } else if (!canControlPlaybackRef.current && playbackRef.current && !playbackRef.current.isPlaying) {
+                // Unauthorized guest clicked play -> pause back
+                player?.pauseVideo();
+              }
+            }
           } else if (event.data === window.YT.PlayerState.PAUSED) {
             setIsPlaying(false);
+
+            // Capture pause click inside native YouTube controls
+            if (!isSyncingFromServerRef.current) {
+              if (canControlPlaybackRef.current && onStateChangeByHostRef.current) {
+                console.log('⏸️ Native YouTube Pause clicked. Broadcasting to room...');
+                onStateChangeByHostRef.current('pause', localTime);
+              } else if (!canControlPlaybackRef.current && playbackRef.current && playbackRef.current.isPlaying) {
+                // Unauthorized guest clicked pause -> play back
+                player?.playVideo();
+              }
+            }
           } else if (event.data === window.YT.PlayerState.ENDED) {
             setIsPlaying(false);
-            if (isHost && onVideoEnd) {
-              onVideoEnd();
+            if (isHostRef.current && onVideoEndRef.current) {
+              onVideoEndRef.current();
             }
           }
         },
         onError: (e: any) => {
           console.error('YouTube Player Error Code:', e.data);
-          // Only flag error if there is an active video selected
-          if (playback?.videoId) {
+          if (playbackRef.current?.videoId) {
             if (e.data === 101 || e.data === 150) {
               setEmbedError('Video embedding restricted by YouTube video owner on mobile web.');
             } else if (e.data === 100 || e.data === 2) {
@@ -111,34 +153,30 @@ export function useYouTubePlayer({
         },
       },
     });
-  }, [containerId, isHost, onVideoEnd, playback?.videoId]);
+  }, [containerId]);
 
   // Synchronize player with authoritative server state
   useEffect(() => {
     if (!isReady || !playerRef.current || !playback || !playback.videoId) return;
 
+    isSyncingFromServerRef.current = true;
     const player = playerRef.current;
     const currentVideoId = playback.videoId;
 
-    // Load new video if videoId changed
-    if (lastVideoIdRef.current !== currentVideoId) {
-      lastVideoIdRef.current = currentVideoId;
-      try {
+    try {
+      // Load new video if videoId changed
+      if (lastVideoIdRef.current !== currentVideoId) {
+        lastVideoIdRef.current = currentVideoId;
         if (typeof player.loadVideoById === 'function') {
           player.loadVideoById({
             videoId: currentVideoId,
             startSeconds: calculateExpectedPosition(playback),
           });
         }
-      } catch (err) {
-        console.error('Error loading video by ID:', err);
       }
-    }
 
-    // Handle Play / Pause sync
-    const expectedPos = calculateExpectedPosition(playback);
-
-    try {
+      // Handle Play / Pause sync
+      const expectedPos = calculateExpectedPosition(playback);
       const playerState = typeof player.getPlayerState === 'function' ? player.getPlayerState() : -1;
 
       if (playback.isPlaying) {
@@ -168,10 +206,14 @@ export function useYouTubePlayer({
       }
     } catch (err) {
       console.warn('Sync error during player update:', err);
+    } finally {
+      setTimeout(() => {
+        isSyncingFromServerRef.current = false;
+      }, 400);
     }
   }, [isReady, playback]);
 
-  // Periodic drift check & time ticker (every 1 second)
+  // Periodic drift check & time ticker (every 500ms) + Native Seek Detection
   useEffect(() => {
     if (!isReady || !playerRef.current) return;
 
@@ -181,7 +223,31 @@ export function useYouTubePlayer({
         if (typeof player.getCurrentTime === 'function') {
           const localTime = player.getCurrentTime() || 0;
           setCurrentTime(localTime);
+
+          // Detect manual seek performed inside YouTube native iframe player controls
+          if (
+            !isSyncingFromServerRef.current &&
+            canControlPlaybackRef.current &&
+            onStateChangeByHostRef.current &&
+            playbackRef.current &&
+            playbackRef.current.isPlaying
+          ) {
+            const expectedPos = calculateExpectedPosition(playbackRef.current);
+            const deltaPrev = Math.abs(localTime - lastKnownTimeRef.current);
+            const deltaExpected = Math.abs(localTime - expectedPos);
+
+            // If time jumped by > 2.5 seconds compared to previous check AND expected position
+            if (deltaPrev > 2.5 && deltaExpected > 2.5) {
+              console.log(
+                `🎯 Native YouTube Seek detected to ${localTime.toFixed(1)}s. Broadcasting seek to room...`
+              );
+              onStateChangeByHostRef.current('seek', localTime);
+            }
+          }
+
+          lastKnownTimeRef.current = localTime;
         }
+
         if (typeof player.getDuration === 'function') {
           const dur = player.getDuration() || 0;
           setDuration(dur);
@@ -189,7 +255,7 @@ export function useYouTubePlayer({
       } catch (e) {
         // Player state transient read
       }
-    }, 1000);
+    }, 500);
 
     return () => clearInterval(interval);
   }, [isReady]);

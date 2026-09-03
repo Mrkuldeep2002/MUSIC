@@ -13,6 +13,7 @@ export function App() {
     isHost,
     canControlPlayback,
     chatMessages,
+    errorMessage,
     toast,
     createRoom,
     joinRoom,
@@ -24,6 +25,8 @@ export function App() {
     addToQueue,
     importPlaylist,
     removeFromQueue,
+    reorderQueue,
+    shuffleQueue,
     nextTrack,
     sendChatMessage,
   } = useRoom({ socket, isConnected });
@@ -34,12 +37,12 @@ export function App() {
       {!isConnected && (
         <div className="bg-amber-500/90 text-dark-900 font-bold px-4 py-2 text-center text-xs flex items-center justify-center gap-2 sticky top-0 z-50 shadow-md">
           <WifiOff className="h-4 w-4" />
-          <span>Connecting to SyncTune Server... Please make sure the server is running on port 3001.</span>
+          <span>Connecting to WeSync Server... Please make sure the server is running on port 3001.</span>
         </div>
       )}
 
       {!roomState ? (
-        <Home onCreateRoom={createRoom} onJoinRoom={joinRoom} />
+        <Home errorMessage={errorMessage} toast={toast} onCreateRoom={createRoom} onJoinRoom={joinRoom} />
       ) : (
         <Room
           roomState={roomState}
@@ -56,6 +59,8 @@ export function App() {
           onAddToQueue={addToQueue}
           onImportPlaylist={importPlaylist}
           onRemoveFromQueue={removeFromQueue}
+          onReorderQueue={reorderQueue}
+          onShuffleQueue={shuffleQueue}
           onNextTrack={nextTrack}
           onSendChatMessage={sendChatMessage}
         />

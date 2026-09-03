@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Music2, Radio, Play, Users, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Music2, Radio, Play, Users, Sparkles, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Toast } from '../components/Toast';
 
 interface HomeProps {
+  errorMessage?: string | null;
+  toast?: { message: string; type: 'info' | 'success' | 'warning' } | null;
   onCreateRoom: (userName?: string) => void;
   onJoinRoom: (roomId: string, userName?: string) => void;
 }
 
-export const Home: React.FC<HomeProps> = ({ onCreateRoom, onJoinRoom }) => {
+export const Home: React.FC<HomeProps> = ({ errorMessage, toast, onCreateRoom, onJoinRoom }) => {
   const [userName, setUserName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -46,7 +49,7 @@ export const Home: React.FC<HomeProps> = ({ onCreateRoom, onJoinRoom }) => {
             <Music2 className="h-6 w-6 text-white" />
           </div>
           <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-            Sync<span className="text-brand-purple">Tune</span>
+            We<span className="text-brand-purple">Sync</span>
           </span>
         </div>
       </header>
@@ -55,7 +58,7 @@ export const Home: React.FC<HomeProps> = ({ onCreateRoom, onJoinRoom }) => {
       <main className="flex-1 max-w-6xl mx-auto px-6 flex flex-col items-center justify-center text-center py-12 z-10">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-brand-purple text-xs font-semibold mb-8 animate-pulse">
           <Sparkles className="h-4 w-4" />
-          <span>Real-Time Synchronized Music Rooms</span>
+          <span>Real-Time Synchronized Music & Video Rooms</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white max-w-4xl leading-tight mb-6">
@@ -140,7 +143,15 @@ export const Home: React.FC<HomeProps> = ({ onCreateRoom, onJoinRoom }) => {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-dark-800 border border-slate-700/80 rounded-3xl p-6 w-full max-w-md shadow-2xl animate-fadeIn">
             <h3 className="text-xl font-bold text-white mb-1">Join a Listening Room</h3>
-            <p className="text-xs text-slate-400 mb-6">Enter the 6-character room code provided by your host.</p>
+            <p className="text-xs text-slate-400 mb-4">Enter the 6-character room code provided by your host.</p>
+
+            {/* Error Alert Banner */}
+            {errorMessage && (
+              <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs animate-fadeIn">
+                <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
             <form onSubmit={handleJoin} className="space-y-4">
               <div>
@@ -180,9 +191,12 @@ export const Home: React.FC<HomeProps> = ({ onCreateRoom, onJoinRoom }) => {
         </div>
       )}
 
+      {/* Floating Toast Notification */}
+      {toast && <Toast message={toast.message} type={toast.type} />}
+
       {/* Footer */}
       <footer className="py-6 border-t border-slate-800/60 text-center text-xs text-slate-500 z-10">
-        SyncTune • Powered by Official YouTube IFrame Player API & Socket.IO
+        WeSync • Powered by Official YouTube IFrame Player API & Socket.IO
       </footer>
     </div>
   );

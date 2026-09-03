@@ -17,7 +17,7 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
   });
 
   // Join Room
-  socket.on('room:join', (payload: { roomId: string; userName?: string }) => {
+  socket.on('room:join', (payload: { roomId: string; userName?: string; name?: string }) => {
     try {
       const roomId = payload?.roomId?.toUpperCase();
       if (!roomId) {
@@ -25,7 +25,8 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
         return;
       }
 
-      const result = roomService.joinRoom(roomId, socket.id, payload?.userName);
+      const userName = payload?.userName || payload?.name;
+      const result = roomService.joinRoom(roomId, socket.id, userName);
       if (!result) {
         socket.emit('error', { message: 'Room not found or no longer available' });
         return;
@@ -183,6 +184,33 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     if (!roomId || !trackId) return;
 
     const updatedRoom = roomService.removeFromQueue(roomId, socket.id, trackId);
+    if (updatedRoom) {
+      io.to(updatedRoom.roomId).emit('queue:updated', { queue: updatedRoom.queue, roomId: updatedRoom.roomId });
+    }
+  });
+
+  // Queue: Reorder track position
+  socket.on('queue:reorder', (payload: { roomId: string; fromIndex: number; toIndex: number }) => {
+    const { roomId, fromIndex, toIndex } = payload || {};
+    if (!roomId || fromIndex === undefined || toIndex === undefined) return;
+
+    const updatedRoom = roomService.reorderQueue(roomId, socket.id, fromIndex, toIndex);
+    if (updatedRoom) {
+      io.to(updatedRoom.roomId).emit('queue:updated', { queue: updatedRoom.queue, roomId: updatedRoom.roomId });
+    }
+  });
+
+  // Queue: Smart Shuffle
+  socket.on('queue:shuffle', async (payload: { roomId: string }) => {
+    const { roomId } = payload || {};
+    if (!roomId) return;
+
+    if (!roomService.canControlPlayback(roomId, socket.id)) {
+      socket.emit('error', { message: 'You do not have permission to shuffle the queue' });
+      return;
+    }
+
+    const updatedRoom = await roomService.shuffleQueue(roomId);
     if (updatedRoom) {
       io.to(updatedRoom.roomId).emit('queue:updated', { queue: updatedRoom.queue, roomId: updatedRoom.roomId });
     }

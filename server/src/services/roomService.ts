@@ -23,6 +23,7 @@ function generateRoomId(): string {
 
 export class RoomService {
   private rooms: Map<string, RoomState> = new Map();
+  private emptyRoomTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
   public createRoom(hostSocketId: string, customName?: string): { room: RoomState; user: RoomUser } {
     let roomId = generateRoomId();
@@ -54,8 +55,8 @@ export class RoomService {
       playback: initialPlayback,
       queue: [],
       users: [hostUser],
-      allowGuestControls: false,
-      autoplayEnabled: true,
+      allowGuestControls: true,
+      autoplayEnabled: false,
       createdAt: Date.now(),
     };
 
@@ -91,6 +92,13 @@ export class RoomService {
     const room = this.rooms.get(roomId.toUpperCase());
     if (!room) return null;
 
+    // Clear empty room deletion timeout if user reconnected within grace period (e.g. browser refresh)
+    if (this.emptyRoomTimeouts.has(room.roomId)) {
+      console.log(`✅ User reconnected to empty room ${room.roomId} within grace period. Cancelling deletion timer.`);
+      clearTimeout(this.emptyRoomTimeouts.get(room.roomId)!);
+      this.emptyRoomTimeouts.delete(room.roomId);
+    }
+
     // Check if user already in room
     let user = room.users.find((u) => u.id === socketId);
     if (!user) {
@@ -104,8 +112,9 @@ export class RoomService {
       room.users.push(user);
     }
 
-    if (user.isHost) {
+    if (user.isHost || room.users.length === 1) {
       room.hostId = socketId;
+      user.isHost = true;
     }
 
     return { room: this.getCalculatedRoomState(room.roomId)!, user };
@@ -118,9 +127,19 @@ export class RoomService {
         const isLeavingHost = room.hostId === socketId;
         room.users.splice(userIndex, 1);
 
-        // If room is empty, delete room
+        // If room becomes empty, schedule 2-minute Grace Period before deleting to allow browser refresh recovery
         if (room.users.length === 0) {
-          this.rooms.delete(roomId);
+          console.log(`⏳ Room ${roomId} is empty. Grace period timer started (2 minutes)...`);
+          if (this.emptyRoomTimeouts.has(roomId)) {
+            clearTimeout(this.emptyRoomTimeouts.get(roomId)!);
+          }
+          const timeout = setTimeout(() => {
+            console.log(`🗑️ Grace period expired for room ${roomId}. Deleting room.`);
+            this.rooms.delete(roomId);
+            this.emptyRoomTimeouts.delete(roomId);
+          }, 120000); // 2 minutes grace period
+          this.emptyRoomTimeouts.set(roomId, timeout);
+
           return { roomId, hostChanged: false };
         }
 
@@ -209,6 +228,33 @@ export class RoomService {
     return this.getCalculatedRoomState(roomId)!;
   }
 
+  public async shuffleQueue(roomId: string): Promise<RoomState | null> {
+    const room = this.rooms.get(roomId.toUpperCase());
+    if (!room || room.queue.length === 0) return null;
+
+    // Fisher-Yates Shuffle
+    const shuffled = [...room.queue];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    // Try to inject smart recommendation based on currently playing track
+    if (room.playback.currentTrack) {
+      try {
+        const smartTrack = await youtubeService.getRelatedTrack(room.playback.currentTrack);
+        if (smartTrack && !shuffled.some((t) => t.videoId === smartTrack.videoId)) {
+          shuffled.push(smartTrack);
+        }
+      } catch (e) {
+        // Silently skip if smart recommendation is unavailable
+      }
+    }
+
+    room.queue = shuffled;
+    return this.getCalculatedRoomState(roomId)!;
+  }
+
   public importPlaylistToQueue(roomId: string, tracks: PlaylistItem[]): RoomState | null {
     const room = this.rooms.get(roomId.toUpperCase());
     if (!room || !tracks || tracks.length === 0) return null;
@@ -252,6 +298,30 @@ export class RoomService {
         };
       }
     }
+
+    return this.getCalculatedRoomState(roomId)!;
+  }
+
+  public reorderQueue(roomId: string, socketId: string, fromIndex: number, toIndex: number): RoomState | null {
+    const room = this.rooms.get(roomId.toUpperCase());
+    if (!room) return null;
+
+    if (!this.canControlPlayback(roomId, socketId)) {
+      return null;
+    }
+
+    if (
+      fromIndex < 0 ||
+      fromIndex >= room.queue.length ||
+      toIndex < 0 ||
+      toIndex >= room.queue.length ||
+      fromIndex === toIndex
+    ) {
+      return this.getCalculatedRoomState(roomId)!;
+    }
+
+    const [movedTrack] = room.queue.splice(fromIndex, 1);
+    room.queue.splice(toIndex, 0, movedTrack);
 
     return this.getCalculatedRoomState(roomId)!;
   }

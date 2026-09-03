@@ -21,16 +21,18 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
 
   const isHost = currentUser?.isHost || roomState?.hostId === socket?.id;
 
-  // Auto-recovery / reconnect logic
+  // Auto-recovery / reconnect logic on page mount or refresh
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    const savedRoomId = sessionStorage.getItem('synctune_room_id');
-    const savedUserName = localStorage.getItem('synctune_user_name') || '';
+    const params = new URLSearchParams(window.location.search);
+    const urlRoomId = params.get('room')?.toUpperCase();
+    const savedRoomId = sessionStorage.getItem('wesync_room_id') || urlRoomId;
+    const savedUserName = localStorage.getItem('wesync_user_name') || '';
 
     if (savedRoomId && !roomState) {
       console.log(`🔄 Attempting state recovery for room: ${savedRoomId}`);
-      socket.emit('room:join', { roomId: savedRoomId, userName: savedUserName });
+      socket.emit('room:join', { roomId: savedRoomId, name: savedUserName });
     }
   }, [socket, isConnected]);
 
@@ -42,7 +44,9 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     socket.on('room:created', (data: { room: RoomState; user: RoomUser }) => {
       setRoomState(data.room);
       setCurrentUser(data.user);
-      sessionStorage.setItem('synctune_room_id', data.room.roomId);
+      sessionStorage.setItem('wesync_room_id', data.room.roomId);
+      if (data.user.name) localStorage.setItem('wesync_user_name', data.user.name);
+      window.history.replaceState({}, '', `/?room=${data.room.roomId}`);
       showToast(`Room ${data.room.roomId} created! You are the host.`, 'success');
     });
 
@@ -50,7 +54,9 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     socket.on('room:joined', (data: { room: RoomState; user: RoomUser }) => {
       setRoomState(data.room);
       setCurrentUser(data.user);
-      sessionStorage.setItem('synctune_room_id', data.room.roomId);
+      sessionStorage.setItem('wesync_room_id', data.room.roomId);
+      if (data.user.name) localStorage.setItem('wesync_user_name', data.user.name);
+      window.history.replaceState({}, '', `/?room=${data.room.roomId}`);
       showToast(`Joined room ${data.room.roomId}!`, 'success');
     });
 
@@ -154,19 +160,19 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
 
   // Actions
   const createRoom = useCallback(
-    (userName?: string) => {
+    (name?: string) => {
       if (!socket) return;
-      if (userName) localStorage.setItem('synctune_user_name', userName);
-      socket.emit('room:create', { userName });
+      if (name) localStorage.setItem('wesync_user_name', name);
+      socket.emit('room:create', { name });
     },
     [socket]
   );
 
   const joinRoom = useCallback(
-    (roomId: string, userName?: string) => {
+    (roomId: string, name?: string) => {
       if (!socket) return;
-      if (userName) localStorage.setItem('synctune_user_name', userName);
-      socket.emit('room:join', { roomId, userName });
+      if (name) localStorage.setItem('wesync_user_name', name);
+      socket.emit('room:join', { roomId, name });
     },
     [socket]
   );
@@ -174,7 +180,8 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
   const leaveRoom = useCallback(() => {
     if (!socket) return;
     socket.emit('room:leave');
-    sessionStorage.removeItem('synctune_room_id');
+    sessionStorage.removeItem('wesync_room_id');
+    window.history.replaceState({}, '', '/');
     setRoomState(null);
     setCurrentUser(null);
     setChatMessages([]);
@@ -248,6 +255,20 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     [socket, roomState]
   );
 
+  const reorderQueue = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      if (!socket || !roomState) return;
+      socket.emit('queue:reorder', { roomId: roomState.roomId, fromIndex, toIndex });
+    },
+    [socket, roomState]
+  );
+
+  const shuffleQueue = useCallback(() => {
+    if (!socket || !roomState) return;
+    socket.emit('queue:shuffle', { roomId: roomState.roomId });
+    showToast('🔀 Smart Queue Shuffled!', 'info');
+  }, [socket, roomState, showToast]);
+
   const nextTrack = useCallback(() => {
     if (!socket || !roomState) return;
     socket.emit('queue:next', { roomId: roomState.roomId });
@@ -281,6 +302,8 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     addToQueue,
     importPlaylist,
     removeFromQueue,
+    reorderQueue,
+    shuffleQueue,
     nextTrack,
     sendChatMessage,
   };

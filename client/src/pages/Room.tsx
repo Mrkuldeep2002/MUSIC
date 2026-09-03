@@ -28,6 +28,8 @@ interface RoomProps {
   onAddToQueue: (track: PlaylistItem) => void;
   onImportPlaylist: (tracks: PlaylistItem[]) => void;
   onRemoveFromQueue: (trackId: string) => void;
+  onReorderQueue?: (fromIndex: number, toIndex: number) => void;
+  onShuffleQueue?: () => void;
   onNextTrack: () => void;
   onSendChatMessage: (message: string) => void;
 }
@@ -47,6 +49,8 @@ export const Room: React.FC<RoomProps> = ({
   onAddToQueue,
   onImportPlaylist,
   onRemoveFromQueue,
+  onReorderQueue,
+  onShuffleQueue,
   onNextTrack,
   onSendChatMessage,
 }) => {
@@ -91,8 +95,16 @@ export const Room: React.FC<RoomProps> = ({
 
   return (
     <div className="min-h-screen bg-dark-900 text-slate-100 flex flex-col">
-      {/* Header */}
-      <Header roomState={roomState} onLeaveRoom={onLeaveRoom} />
+      {/* Header with YouTube Music Style Navbar Search */}
+      <Header
+        roomState={roomState}
+        isHost={isHost}
+        canControlPlayback={canControlPlayback}
+        onLeaveRoom={onLeaveRoom}
+        onSearch={searchYouTube}
+        onSelectTrack={onChangeVideo}
+        onAddToQueue={onAddToQueue}
+      />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
@@ -133,6 +145,8 @@ export const Room: React.FC<RoomProps> = ({
               canControlPlayback={canControlPlayback}
               onRemoveFromQueue={onRemoveFromQueue}
               onPlayNow={onChangeVideo}
+              onReorderQueue={onReorderQueue}
+              onShuffleQueue={onShuffleQueue}
               onToggleAutoplay={onToggleAutoplay}
             />
           </div>
@@ -140,20 +154,6 @@ export const Room: React.FC<RoomProps> = ({
 
         {/* Playlist Importer Section */}
         <PlaylistImporter onImportPlaylist={onImportPlaylist} />
-
-        {/* Search Bar & Search Results Section */}
-        <div className="glass-panel p-5 border border-slate-800 space-y-4">
-          <SearchBar onSearch={handleSearch} isLoading={isSearching} />
-          <SearchResults
-            results={searchResults}
-            isLoading={isSearching}
-            error={searchError}
-            isHost={isHost}
-            canControlPlayback={canControlPlayback}
-            onSelectTrack={onChangeVideo}
-            onAddToQueue={onAddToQueue}
-          />
-        </div>
 
         {/* Bottom Grid: Room Listeners & Real-Time Chat */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
