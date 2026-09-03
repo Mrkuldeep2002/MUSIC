@@ -216,6 +216,22 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     }
   });
 
+  // Queue: Clear Queue
+  socket.on('queue:clear', (payload: { roomId: string }) => {
+    const { roomId } = payload || {};
+    if (!roomId) return;
+
+    if (!roomService.canControlPlayback(roomId, socket.id)) {
+      socket.emit('error', { message: 'You do not have permission to clear the queue' });
+      return;
+    }
+
+    const updatedRoom = roomService.clearQueue(roomId, socket.id);
+    if (updatedRoom) {
+      io.to(updatedRoom.roomId).emit('queue:updated', { queue: updatedRoom.queue, roomId: updatedRoom.roomId });
+    }
+  });
+
   // Queue: Skip / Next track
   socket.on('queue:next', async (payload: { roomId: string }) => {
     const { roomId } = payload || {};

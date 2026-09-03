@@ -411,34 +411,47 @@ export class YouTubeService {
     }
 
     try {
-      const response = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
-        params: {
-          part: 'snippet',
-          playlistId: playlistId,
-          maxResults: 50,
-          key: apiKey,
-        },
-        timeout: 6000,
-      });
+      const allItems: PlaylistItem[] = [];
+      let nextPageToken: string | undefined = undefined;
+      let pageCount = 0;
+      const MAX_PAGES = 4; // Import up to 200 songs per playlist (4 pages x 50 results)
 
-      const items = response.data.items || [];
-      const playlistItems: PlaylistItem[] = items
-        .filter((item: any) => item.snippet && item.snippet.resourceId && item.snippet.resourceId.videoId)
-        .map((item: any, index: number) => ({
-          id: `item-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`,
-          videoId: item.snippet.resourceId.videoId,
-          title: item.snippet.title,
-          channelTitle: item.snippet.videoOwnerChannelTitle || item.snippet.channelTitle || 'YouTube Music',
-          thumbnailUrl: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url || '',
-          duration: '3:30',
-          addedBy: 'playlist',
-        }));
+      do {
+        const response: any = await axios.get('https://www.googleapis.com/youtube/v3/playlistItems', {
+          params: {
+            part: 'snippet',
+            playlistId: playlistId,
+            maxResults: 50,
+            pageToken: nextPageToken,
+            key: apiKey,
+          },
+          timeout: 6000,
+        });
 
-      if (playlistItems.length === 0) {
+        const items = response.data.items || [];
+        const pageItems: PlaylistItem[] = items
+          .filter((item: any) => item.snippet && item.snippet.resourceId && item.snippet.resourceId.videoId)
+          .map((item: any, index: number) => ({
+            id: `item-${Date.now()}-${allItems.length + index}-${Math.random().toString(36).slice(2, 6)}`,
+            videoId: item.snippet.resourceId.videoId,
+            title: item.snippet.title,
+            channelTitle: item.snippet.videoOwnerChannelTitle || item.snippet.channelTitle || 'YouTube Music',
+            thumbnailUrl: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url || `https://i.ytimg.com/vi/${item.snippet.resourceId.videoId}/hqdefault.jpg`,
+            duration: '3:30',
+            addedBy: 'playlist',
+          }));
+
+        allItems.push(...pageItems);
+        nextPageToken = response.data.nextPageToken;
+        pageCount++;
+      } while (nextPageToken && pageCount < MAX_PAGES);
+
+      if (allItems.length === 0) {
         return this.getMockPlaylistItems();
       }
 
-      return playlistItems;
+      console.log(`✅ Successfully imported ${allItems.length} tracks from playlist ${playlistId}`);
+      return allItems;
     } catch (error: any) {
       console.warn('⚠️ Failed to fetch YouTube playlist from API. Falling back to mock playlist:', error.message);
       return this.getMockPlaylistItems();

@@ -30,6 +30,7 @@ interface RoomProps {
   onRemoveFromQueue: (trackId: string) => void;
   onReorderQueue?: (fromIndex: number, toIndex: number) => void;
   onShuffleQueue?: () => void;
+  onClearQueue?: () => void;
   onNextTrack: () => void;
   onSendChatMessage: (message: string) => void;
 }
@@ -51,6 +52,7 @@ export const Room: React.FC<RoomProps> = ({
   onRemoveFromQueue,
   onReorderQueue,
   onShuffleQueue,
+  onClearQueue,
   onNextTrack,
   onSendChatMessage,
 }) => {
@@ -147,6 +149,7 @@ export const Room: React.FC<RoomProps> = ({
               onPlayNow={onChangeVideo}
               onReorderQueue={onReorderQueue}
               onShuffleQueue={onShuffleQueue}
+              onClearQueue={onClearQueue}
               onToggleAutoplay={onToggleAutoplay}
             />
           </div>

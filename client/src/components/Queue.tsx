@@ -10,6 +10,7 @@ interface QueueProps {
   onPlayNow: (track: PlaylistItem) => void;
   onReorderQueue?: (fromIndex: number, toIndex: number) => void;
   onShuffleQueue?: () => void;
+  onClearQueue?: () => void;
   onToggleAutoplay?: (enabled: boolean) => void;
 }
 
@@ -21,6 +22,7 @@ export const Queue: React.FC<QueueProps> = ({
   onPlayNow,
   onReorderQueue,
   onShuffleQueue,
+  onClearQueue,
   onToggleAutoplay,
 }) => {
   const currentTrack = roomState?.playback.currentTrack;
@@ -60,25 +62,25 @@ export const Queue: React.FC<QueueProps> = ({
   return (
     <div className="glass-panel p-4 flex flex-col h-full border border-slate-800">
       <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-800">
-        <div className="flex items-center gap-2">
-          <ListMusic className="h-5 w-5 text-brand-pink" />
-          <h3 className="font-bold text-base text-white">Music Queue</h3>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-dark-700 text-slate-400 font-mono">
+        <div className="flex items-center gap-2 shrink-0">
+          <ListMusic className="h-5 w-5 text-brand-pink shrink-0" />
+          <h3 className="font-bold text-base text-white whitespace-nowrap">Queue</h3>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-dark-700 text-slate-400 font-mono shrink-0">
             {queue.length}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Smart Shuffle Button */}
           {canControlPlayback && (
             <button
               onClick={onShuffleQueue}
               disabled={queue.length < 2}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-700/60 bg-dark-700/60 hover:bg-brand-purple/20 hover:border-brand-purple/40 text-slate-300 hover:text-white disabled:opacity-30 text-xs font-medium transition-all"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-700/60 bg-dark-700/60 hover:bg-brand-purple/20 hover:border-brand-purple/40 text-slate-300 hover:text-white disabled:opacity-30 text-xs font-medium transition-all whitespace-nowrap"
               title="Smart Shuffle Queue"
             >
-              <Shuffle className="h-3.5 w-3.5 text-brand-cyan" />
-              <span className="hidden sm:inline">Shuffle</span>
+              <Shuffle className="h-3.5 w-3.5 text-brand-cyan shrink-0" />
+              <span>Shuffle</span>
             </button>
           )}
 
@@ -86,15 +88,15 @@ export const Queue: React.FC<QueueProps> = ({
           {isHost ? (
             <button
               onClick={() => onToggleAutoplay?.(!autoplayEnabled)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-all ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium transition-all whitespace-nowrap ${
                 autoplayEnabled
                   ? 'bg-purple-500/10 border-purple-500/30 text-purple-300 hover:bg-purple-500/20'
                   : 'bg-dark-700/60 border-slate-700/60 text-slate-400 hover:text-slate-200'
               }`}
               title="Toggle Smart Autoplay (Auto-fetch Related Songs when Queue is Empty)"
             >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>{autoplayEnabled ? 'Autoplay ON' : 'Autoplay OFF'}</span>
+              <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+              <span>Autoplay {autoplayEnabled ? 'ON' : 'OFF'}</span>
             </button>
           ) : (
             autoplayEnabled && (
@@ -134,9 +136,23 @@ export const Queue: React.FC<QueueProps> = ({
 
       {/* UP NEXT Queue */}
       <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-[160px] max-h-[340px]">
-        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-          Up Next
-        </h4>
+        <div className="flex items-center justify-between mb-1">
+          <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Up Next
+          </h4>
+
+          {/* Clear Queue Button in UP NEXT Header */}
+          {canControlPlayback && queue.length > 0 && (
+            <button
+              onClick={onClearQueue}
+              className="flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-rose-400 transition-colors px-2 py-0.5 rounded-md hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20"
+              title="Clear Upcoming Queue"
+            >
+              <Trash2 className="h-3 w-3" />
+              <span>Clear Queue</span>
+            </button>
+          )}
+        </div>
 
         {queue.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-500">

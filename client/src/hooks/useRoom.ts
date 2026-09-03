@@ -269,6 +269,12 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     showToast('🔀 Smart Queue Shuffled!', 'info');
   }, [socket, roomState, showToast]);
 
+  const clearQueue = useCallback(() => {
+    if (!socket || !roomState) return;
+    socket.emit('queue:clear', { roomId: roomState.roomId });
+    showToast('🗑️ Queue cleared!', 'info');
+  }, [socket, roomState, showToast]);
+
   const nextTrack = useCallback(() => {
     if (!socket || !roomState) return;
     socket.emit('queue:next', { roomId: roomState.roomId });
@@ -304,6 +310,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     removeFromQueue,
     reorderQueue,
     shuffleQueue,
+    clearQueue,
     nextTrack,
     sendChatMessage,
   };

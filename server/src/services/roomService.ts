@@ -255,6 +255,18 @@ export class RoomService {
     return this.getCalculatedRoomState(roomId)!;
   }
 
+  public clearQueue(roomId: string, socketId: string): RoomState | null {
+    const room = this.rooms.get(roomId.toUpperCase());
+    if (!room) return null;
+
+    if (!this.canControlPlayback(roomId, socketId)) {
+      return null;
+    }
+
+    room.queue = [];
+    return this.getCalculatedRoomState(roomId)!;
+  }
+
   public importPlaylistToQueue(roomId: string, tracks: PlaylistItem[]): RoomState | null {
     const room = this.rooms.get(roomId.toUpperCase());
     if (!room || !tracks || tracks.length === 0) return null;

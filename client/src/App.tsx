@@ -27,6 +27,7 @@ export function App() {
     removeFromQueue,
     reorderQueue,
     shuffleQueue,
+    clearQueue,
     nextTrack,
     sendChatMessage,
   } = useRoom({ socket, isConnected });
@@ -61,6 +62,7 @@ export function App() {
           onRemoveFromQueue={removeFromQueue}
           onReorderQueue={reorderQueue}
           onShuffleQueue={shuffleQueue}
+          onClearQueue={clearQueue}
           onNextTrack={nextTrack}
           onSendChatMessage={sendChatMessage}
         />
