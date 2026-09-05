@@ -138,6 +138,16 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
       setChatMessages((prev) => [...prev, msg]);
     });
 
+    // Kicked by host
+    socket.on('room:kicked', (data: { message: string }) => {
+      showToast(data.message, 'warning');
+      sessionStorage.removeItem('wesync_room_id');
+      window.history.replaceState({}, '', '/');
+      setRoomState(null);
+      setCurrentUser(null);
+      setChatMessages([]);
+    });
+
     // Errors
     socket.on('error', (err: { message: string }) => {
       setErrorMessage(err.message);
@@ -156,11 +166,13 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
       socket.off('queue:updated');
       socket.off('room:updated');
       socket.off('chat:message');
+      socket.off('room:kicked');
       socket.off('error');
     };
   }, [socket, showToast]);
 
   // Actions
+
   const createRoom = useCallback(
     (name?: string) => {
       if (!socket) return;
@@ -290,6 +302,27 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     [socket, roomState]
   );
 
+  const updateUserName = useCallback(
+    (newName: string) => {
+      const trimmed = newName.trim();
+      if (!socket || !trimmed) return;
+      localStorage.setItem('wesync_user_name', trimmed);
+      setCurrentUser((prev) => (prev ? { ...prev, name: trimmed } : null));
+      socket.emit('room:update-name', { newName: trimmed });
+      showToast(`Name updated to "${trimmed}"`, 'success');
+    },
+    [socket, showToast]
+  );
+
+  const kickUser = useCallback(
+    (targetSocketId: string) => {
+      if (!socket || !roomState || !isHost) return;
+      socket.emit('room:kick-user', { targetSocketId });
+      showToast('User kicked from room', 'info');
+    },
+    [socket, roomState, isHost, showToast]
+  );
+
   const canControlPlayback = isHost || !!roomState?.allowGuestControls;
 
   return {
@@ -303,6 +336,8 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     createRoom,
     joinRoom,
     leaveRoom,
+    updateUserName,
+    kickUser,
     toggleGuestControls,
     toggleAutoplay,
     sendPlaybackAction,
@@ -316,4 +351,6 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     nextTrack,
     sendChatMessage,
   };
-}
+};
+
+

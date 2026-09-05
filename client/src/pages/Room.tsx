@@ -21,6 +21,8 @@ interface RoomProps {
   chatMessages: ChatMessage[];
   toast: { message: string; type: 'info' | 'success' | 'warning' } | null;
   onLeaveRoom: () => void;
+  onUpdateUserName?: (newName: string) => void;
+  onKickUser?: (targetSocketId: string) => void;
   onToggleGuestControls: (allow: boolean) => void;
   onToggleAutoplay: (enabled: boolean) => void;
   onSendPlaybackAction: (action: 'play' | 'pause' | 'seek', position: number) => void;
@@ -43,6 +45,8 @@ export const Room: React.FC<RoomProps> = ({
   chatMessages,
   toast,
   onLeaveRoom,
+  onUpdateUserName,
+  onKickUser,
   onToggleGuestControls,
   onToggleAutoplay,
   onSendPlaybackAction,
@@ -160,7 +164,14 @@ export const Room: React.FC<RoomProps> = ({
 
         {/* Bottom Grid: Room Listeners & Real-Time Chat */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <RoomUsers users={roomState.users} currentUserId={currentUser?.id} />
+          <RoomUsers 
+            users={roomState.users} 
+            currentUserId={currentUser?.id} 
+            isHost={isHost}
+            onUpdateUserName={onUpdateUserName}
+            onKickUser={onKickUser}
+          />
+
           <Chat
             messages={chatMessages}
             currentUserId={currentUser?.id}

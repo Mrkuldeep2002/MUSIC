@@ -170,6 +170,19 @@ export const Home: React.FC<HomeProps> = ({ errorMessage, toast, onCreateRoom, o
 
             <form onSubmit={handleJoin} className="space-y-4">
               <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  Your Display Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={userName}
+                  onChange={(e) => handleUserNameChange(e.target.value)}
+                  placeholder="e.g. Rahul, Aman, DJ Sonic"
+                  className="w-full bg-dark-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple"
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                   Room Code
                 </label>
@@ -183,6 +196,7 @@ export const Home: React.FC<HomeProps> = ({ errorMessage, toast, onCreateRoom, o
                   className="w-full bg-dark-900 border border-slate-700/80 rounded-xl px-4 py-3 text-center text-2xl font-mono font-bold tracking-widest text-brand-cyan uppercase placeholder-slate-600 focus:outline-none focus:border-brand-cyan"
                 />
               </div>
+
 
               <div className="flex gap-3 pt-2">
                 <button

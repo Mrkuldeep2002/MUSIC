@@ -44,7 +44,65 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     }
   });
 
+  // Update Display Name
+  socket.on('room:update-name', (payload: { newName: string }) => {
+    try {
+      const { newName } = payload || {};
+      if (!newName || !newName.trim()) return;
+
+      // Find user's room
+      const rooms = roomService.getAllRooms();
+      const userRoom = rooms.find((r) => r.users.some((u) => u.id === socket.id));
+      if (!userRoom) return;
+
+      const result = roomService.updateUserName(userRoom.roomId, socket.id, newName);
+      if (result) {
+        io.to(userRoom.roomId).emit('room:updated', { room: result.room });
+        console.log(`✏️ User (${socket.id}) changed name to: ${result.user.name}`);
+      }
+    } catch (err: any) {
+      socket.emit('error', { message: 'Failed to update display name' });
+    }
+  });
+
+  // Kick User from Room (Host Only)
+  socket.on('room:kick-user', (payload: { targetSocketId: string }) => {
+    try {
+      const { targetSocketId } = payload || {};
+      if (!targetSocketId) return;
+
+      const rooms = roomService.getAllRooms();
+      const userRoom = rooms.find((r) => r.hostId === socket.id);
+      if (!userRoom) {
+        socket.emit('error', { message: 'Only the host can kick room members' });
+        return;
+      }
+
+      const result = roomService.kickUser(userRoom.roomId, socket.id, targetSocketId);
+      if (result) {
+        const { room, kickedUser } = result;
+
+        // Notify target socket they were kicked
+        const targetSocket = io.sockets.sockets.get(targetSocketId);
+        if (targetSocket) {
+          targetSocket.emit('room:kicked', { message: 'You were removed from the room by the host.' });
+          targetSocket.leave(room.roomId);
+        }
+
+        // Notify remaining room members
+        io.to(room.roomId).emit('room:user-left', { socketId: targetSocketId, room });
+        io.to(room.roomId).emit('room:updated', { room });
+
+        console.log(`🚫 Host ${socket.id} kicked user ${kickedUser.name} (${targetSocketId}) from room ${room.roomId}`);
+      }
+    } catch (err: any) {
+      socket.emit('error', { message: 'Failed to kick user' });
+    }
+  });
+
   // Leave Room
+
+
   socket.on('room:leave', () => {
     handleUserLeave(io, socket);
   });

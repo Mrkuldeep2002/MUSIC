@@ -43,6 +43,7 @@ export interface ChatMessage {
   isHost: boolean;
   message: string;
   timestamp: number;
+  isSystem?: boolean;
 }
 
 export interface YouTubeSearchResult {

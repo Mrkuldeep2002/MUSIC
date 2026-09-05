@@ -18,6 +18,8 @@ export function App() {
     createRoom,
     joinRoom,
     leaveRoom,
+    updateUserName,
+    kickUser,
     toggleGuestControls,
     toggleAutoplay,
     sendPlaybackAction,
@@ -53,7 +55,10 @@ export function App() {
           chatMessages={chatMessages}
           toast={toast}
           onLeaveRoom={leaveRoom}
+          onUpdateUserName={updateUserName}
+          onKickUser={kickUser}
           onToggleGuestControls={toggleGuestControls}
+
           onToggleAutoplay={toggleAutoplay}
           onSendPlaybackAction={sendPlaybackAction}
           onChangeVideo={changeVideo}
@@ -67,6 +72,7 @@ export function App() {
           onSendChatMessage={sendChatMessage}
         />
       )}
+
     </div>
   );
 }

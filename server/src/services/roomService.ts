@@ -89,6 +89,11 @@ export class RoomService {
     };
   }
 
+  public getAllRooms(): RoomState[] {
+    return Array.from(this.rooms.values());
+  }
+
+
   public joinRoom(roomId: string, socketId: string, customName?: string): { room: RoomState; user: RoomUser } | null {
     const room = this.rooms.get(roomId.toUpperCase());
     if (!room) return null;
@@ -120,6 +125,66 @@ export class RoomService {
 
     return { room: this.getCalculatedRoomState(room.roomId)!, user };
   }
+
+  public updateUserName(roomId: string, socketId: string, newName: string): { room: RoomState; user: RoomUser } | null {
+    const room = this.rooms.get(roomId.toUpperCase());
+    if (!room) return null;
+
+    const user = room.users.find((u) => u.id === socketId);
+    if (!user) return null;
+
+    const trimmed = newName.trim();
+    if (!trimmed) return null;
+
+    const oldName = user.name;
+    user.name = trimmed;
+
+    // Send system notification in room chat if name changed
+    if (oldName !== trimmed) {
+      if (!room.messages) room.messages = [];
+      room.messages.push({
+        id: `sys-${Date.now()}`,
+        roomId: room.roomId,
+        senderId: 'system',
+        senderName: 'System',
+        isHost: false,
+        message: `${oldName} changed their name to ${trimmed} ✏️`,
+        timestamp: Date.now(),
+        isSystem: true,
+      });
+    }
+
+    return { room: this.getCalculatedRoomState(room.roomId)!, user };
+  }
+
+  public kickUser(roomId: string, hostSocketId: string, targetSocketId: string): { room: RoomState; kickedUser: RoomUser } | null {
+    const room = this.rooms.get(roomId.toUpperCase());
+    if (!room) return null;
+
+    if (room.hostId !== hostSocketId) return null;
+    if (hostSocketId === targetSocketId) return null;
+
+    const userIndex = room.users.findIndex((u) => u.id === targetSocketId);
+    if (userIndex === -1) return null;
+
+    const [kickedUser] = room.users.splice(userIndex, 1);
+
+    if (!room.messages) room.messages = [];
+    room.messages.push({
+      id: `sys-${Date.now()}`,
+      roomId: room.roomId,
+      senderId: 'system',
+      senderName: 'System',
+      isHost: false,
+      message: `${kickedUser.name} was removed from the room by host 🚫`,
+      timestamp: Date.now(),
+      isSystem: true,
+    });
+
+    return { room: this.getCalculatedRoomState(room.roomId)!, kickedUser };
+  }
+
+
 
   public leaveRoom(socketId: string): { roomId: string; room?: RoomState; hostChanged: boolean; newHost?: RoomUser } | null {
     for (const [roomId, room] of this.rooms.entries()) {
