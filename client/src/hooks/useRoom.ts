@@ -7,6 +7,15 @@ interface UseRoomProps {
   isConnected: boolean;
 }
 
+export function getPersistentUserId(): string {
+  let id = localStorage.getItem('wesync_user_id');
+  if (!id) {
+    id = 'u_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+    localStorage.setItem('wesync_user_id', id);
+  }
+  return id;
+}
+
 export function useRoom({ socket, isConnected }: UseRoomProps) {
   const [roomState, setRoomState] = useState<RoomState | null>(null);
   const [currentUser, setCurrentUser] = useState<RoomUser | null>(null);
@@ -19,7 +28,8 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     setTimeout(() => setToast(null), 4000);
   }, []);
 
-  const isHost = currentUser?.isHost || roomState?.hostId === socket?.id;
+  const persistentUserId = getPersistentUserId();
+  const isHost = currentUser?.isHost || roomState?.hostId === socket?.id || (!!roomState?.hostUserId && roomState.hostUserId === persistentUserId);
 
   // Auto-recovery / reconnect logic on page mount or refresh
   useEffect(() => {
@@ -32,7 +42,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
 
     if (savedRoomId && !roomState) {
       console.log(`🔄 Attempting state recovery for room: ${savedRoomId}`);
-      socket.emit('room:join', { roomId: savedRoomId, name: savedUserName });
+      socket.emit('room:join', { roomId: savedRoomId, name: savedUserName, userId: getPersistentUserId() });
     }
   }, [socket, isConnected]);
 
@@ -49,7 +59,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
 
         if (savedRoomId) {
           console.log(`👁️ Tab became visible again. Re-syncing room ${savedRoomId}...`);
-          socket.emit('room:join', { roomId: savedRoomId, name: savedUserName });
+          socket.emit('room:join', { roomId: savedRoomId, name: savedUserName, userId: getPersistentUserId() });
         }
       }
     };
@@ -153,6 +163,11 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     // Room updated
     socket.on('room:updated', (data: { room: RoomState }) => {
       setRoomState(data.room);
+      const myUserId = localStorage.getItem('wesync_user_id');
+      const me = data.room.users.find((u) => (myUserId && u.userId === myUserId) || u.id === socket.id);
+      if (me) {
+        setCurrentUser(me);
+      }
     });
 
     // Chat message
@@ -199,7 +214,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     (name?: string) => {
       if (!socket) return;
       if (name) localStorage.setItem('wesync_user_name', name);
-      socket.emit('room:create', { name });
+      socket.emit('room:create', { name, userId: getPersistentUserId() });
     },
     [socket]
   );
@@ -208,7 +223,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     (roomId: string, name?: string) => {
       if (!socket) return;
       if (name) localStorage.setItem('wesync_user_name', name);
-      socket.emit('room:join', { roomId, name });
+      socket.emit('room:join', { roomId, name, userId: getPersistentUserId() });
     },
     [socket]
   );

@@ -10,6 +10,7 @@ export interface PlaylistItem {
 
 export interface RoomUser {
   id: string; // Socket ID or session ID
+  userId?: string; // Persistent client ID from localStorage
   name: string;
   isHost: boolean;
   joinedAt: number;
@@ -26,6 +27,7 @@ export interface PlaybackState {
 export interface RoomState {
   roomId: string;
   hostId: string;
+  hostUserId?: string; // Persistent userId of the host
   playback: PlaybackState;
   queue: PlaylistItem[];
   users: RoomUser[];

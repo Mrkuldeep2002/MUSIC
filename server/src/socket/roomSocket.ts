@@ -4,21 +4,22 @@ import { PlaylistItem } from '../types/room.js';
 
 export function setupRoomSocket(io: Server, socket: Socket): void {
   // Create Room
-  socket.on('room:create', (payload: { userName?: string; name?: string }) => {
+  socket.on('room:create', (payload: { userName?: string; name?: string; userId?: string }) => {
     try {
       const userName = payload?.userName || payload?.name;
-      const { room, user } = roomService.createRoom(socket.id, userName);
+      const userId = payload?.userId;
+      const { room, user } = roomService.createRoom(socket.id, userName, userId);
       socket.join(room.roomId);
       
       socket.emit('room:created', { room, user });
-      console.log(`🏠 Room created: ${room.roomId} by ${user.name} (${socket.id})`);
+      console.log(`🏠 Room created: ${room.roomId} by ${user.name} (${socket.id}, userId: ${user.userId})`);
     } catch (err: any) {
       socket.emit('error', { message: 'Failed to create room' });
     }
   });
 
   // Join Room
-  socket.on('room:join', (payload: { roomId: string; userName?: string; name?: string }) => {
+  socket.on('room:join', (payload: { roomId: string; userName?: string; name?: string; userId?: string }) => {
     try {
       const roomId = payload?.roomId?.toUpperCase();
       if (!roomId) {
@@ -27,19 +28,25 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
       }
 
       const userName = payload?.userName || payload?.name;
-      const result = roomService.joinRoom(roomId, socket.id, userName);
+      const userId = payload?.userId;
+      const result = roomService.joinRoom(roomId, socket.id, userName, userId);
       if (!result) {
         socket.emit('error', { message: 'Room not found or no longer available' });
         return;
       }
 
-      const { room, user } = result;
+      const { room, user, isReconnect } = result;
       socket.join(room.roomId);
 
       socket.emit('room:joined', { room, user });
-      socket.to(room.roomId).emit('room:user-joined', { user, room });
+      if (isReconnect) {
+        // Reconnection: update room state for other listeners without duplicate chat message spam
+        socket.to(room.roomId).emit('room:updated', { room });
+      } else {
+        socket.to(room.roomId).emit('room:user-joined', { user, room });
+      }
 
-      console.log(`👤 User ${user.name} (${socket.id}) joined room ${room.roomId}`);
+      console.log(`👤 User ${user.name} (${socket.id}, isHost: ${user.isHost}, reconnected: ${!!isReconnect}) joined room ${room.roomId}`);
     } catch (err: any) {
       socket.emit('error', { message: 'Failed to join room' });
     }
@@ -101,11 +108,9 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     }
   });
 
-  // Leave Room
-
-
+  // Leave Room (Explicit button click)
   socket.on('room:leave', () => {
-    handleUserLeave(io, socket);
+    handleExplicitLeave(io, socket);
   });
 
   // Playback controls: Play
@@ -309,13 +314,20 @@ export function setupRoomSocket(io: Server, socket: Socket): void {
     }
   });
 
-  // Handle Disconnect
+  // Handle Disconnect (transport dropped, page refresh, mobile screen lock)
   socket.on('disconnect', () => {
-    handleUserLeave(io, socket);
+    roomService.handleDisconnect(socket.id, (roomId, disconnectedSocketId, updatedRoom, hostChanged, newHost) => {
+      io.to(roomId).emit('room:user-left', { socketId: disconnectedSocketId, room: updatedRoom });
+
+      if (hostChanged && newHost) {
+        io.to(roomId).emit('room:host-changed', { newHost, room: updatedRoom });
+        console.log(`👑 Host transferred to ${newHost.name} in room ${roomId}`);
+      }
+    });
   });
 }
 
-function handleUserLeave(io: Server, socket: Socket) {
+function handleExplicitLeave(io: Server, socket: Socket) {
   const result = roomService.leaveRoom(socket.id);
   if (result && result.roomId) {
     const { roomId, room, hostChanged, newHost } = result;

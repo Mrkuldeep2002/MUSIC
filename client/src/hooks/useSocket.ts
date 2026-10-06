@@ -38,8 +38,9 @@ export function useSocket() {
       const savedUserName = localStorage.getItem('wesync_user_name') || '';
 
       if (savedRoomId) {
+        const savedUserId = localStorage.getItem('wesync_user_id') || undefined;
         console.log(`🔄 Auto-rejoining room ${savedRoomId} after reconnect...`);
-        socket.emit('room:join', { roomId: savedRoomId, name: savedUserName });
+        socket.emit('room:join', { roomId: savedRoomId, name: savedUserName, userId: savedUserId });
       }
     });
 

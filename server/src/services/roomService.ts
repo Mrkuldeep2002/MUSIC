@@ -24,8 +24,9 @@ function generateRoomId(): string {
 export class RoomService {
   private rooms: Map<string, RoomState> = new Map();
   private emptyRoomTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private disconnectTimers: Map<string, NodeJS.Timeout> = new Map();
 
-  public createRoom(hostSocketId: string, customName?: string): { room: RoomState; user: RoomUser } {
+  public createRoom(hostSocketId: string, customName?: string, userId?: string): { room: RoomState; user: RoomUser } {
     let roomId = generateRoomId();
     // Ensure uniqueness
     while (this.rooms.has(roomId)) {
@@ -33,9 +34,11 @@ export class RoomService {
     }
 
     const userName = customName && customName.trim() ? customName.trim() : `Host ${generateRandomName()}`;
+    const persistentUserId = userId || hostSocketId;
     
     const hostUser: RoomUser = {
       id: hostSocketId,
+      userId: persistentUserId,
       name: userName,
       isHost: true,
       joinedAt: Date.now(),
@@ -52,6 +55,7 @@ export class RoomService {
     const roomState: RoomState = {
       roomId,
       hostId: hostSocketId,
+      hostUserId: persistentUserId,
       playback: initialPlayback,
       queue: [],
       users: [hostUser],
@@ -94,7 +98,12 @@ export class RoomService {
   }
 
 
-  public joinRoom(roomId: string, socketId: string, customName?: string): { room: RoomState; user: RoomUser } | null {
+  public joinRoom(
+    roomId: string, 
+    socketId: string, 
+    customName?: string, 
+    userId?: string
+  ): { room: RoomState; user: RoomUser; isReconnect?: boolean } | null {
     const room = this.rooms.get(roomId.toUpperCase());
     if (!room) return null;
 
@@ -105,29 +114,65 @@ export class RoomService {
       this.emptyRoomTimeouts.delete(room.roomId);
     }
 
-    // Check if user already in room (by socket ID — won't match after reconnect with new socket ID)
-    let user = room.users.find((u) => u.id === socketId);
-    if (!user) {
-      const userName = customName && customName.trim() ? customName.trim() : generateRandomName();
-
-      // If room is empty (grace period recovery), the reconnecting user should become host
-      const shouldBeHost = room.users.length === 0;
-
-      user = {
-        id: socketId,
-        name: userName,
-        isHost: shouldBeHost,
-        joinedAt: Date.now(),
-      };
-      room.users.push(user);
-
-      // Update hostId if this user is becoming the host
-      if (shouldBeHost) {
-        room.hostId = socketId;
+    // Cancel any pending disconnect grace timer for this user
+    if (userId) {
+      const timerKey = `${room.roomId}:${userId}`;
+      if (this.disconnectTimers.has(timerKey)) {
+        console.log(`⏱️ Cancelled disconnect timer for user ${userId} in room ${room.roomId}`);
+        clearTimeout(this.disconnectTimers.get(timerKey)!);
+        this.disconnectTimers.delete(timerKey);
       }
     }
 
-    return { room: this.getCalculatedRoomState(room.roomId)!, user };
+    // Check if this user is already in the room (by matching userId or socketId)
+    let user = room.users.find((u) => (userId && u.userId === userId) || u.id === socketId);
+
+    if (user) {
+      // Reconnecting existing user (e.g. page refresh, network reconnect)
+      console.log(`🔄 User ${user.name} (${user.userId || user.id}) reconnected with socket ${socketId}`);
+      user.id = socketId;
+      if (userId) user.userId = userId;
+      if (customName && customName.trim()) {
+        user.name = customName.trim();
+      }
+
+      // If this user is the room's host, retain host role and update hostId to new socket
+      const isOriginalHost = (userId && room.hostUserId === userId) || user.isHost || room.users.length === 1;
+      if (isOriginalHost) {
+        user.isHost = true;
+        room.hostId = socketId;
+        if (userId) room.hostUserId = userId;
+        // Ensure no other user is marked host
+        room.users.forEach((u) => {
+          if (u.id !== socketId) u.isHost = false;
+        });
+      }
+
+      return { room: this.getCalculatedRoomState(room.roomId)!, user, isReconnect: true };
+    }
+
+    // Brand new user joining
+    const userName = customName && customName.trim() ? customName.trim() : generateRandomName();
+    const isOriginalHost = (userId && room.hostUserId === userId) || room.users.length === 0;
+
+    user = {
+      id: socketId,
+      userId: userId || socketId,
+      name: userName,
+      isHost: isOriginalHost,
+      joinedAt: Date.now(),
+    };
+    room.users.push(user);
+
+    if (isOriginalHost) {
+      room.hostId = socketId;
+      if (userId) room.hostUserId = userId;
+      room.users.forEach((u) => {
+        if (u.id !== socketId) u.isHost = false;
+      });
+    }
+
+    return { room: this.getCalculatedRoomState(room.roomId)!, user, isReconnect: false };
   }
 
   public updateUserName(roomId: string, socketId: string, newName: string): { room: RoomState; user: RoomUser } | null {
@@ -190,14 +235,29 @@ export class RoomService {
 
 
 
+  /**
+   * Explicit leave (e.g. clicking "Leave Room" button).
+   * Immediately removes the user and immediately reassigns host if needed.
+   */
   public leaveRoom(socketId: string): { roomId: string; room?: RoomState; hostChanged: boolean; newHost?: RoomUser } | null {
     for (const [roomId, room] of this.rooms.entries()) {
       const userIndex = room.users.findIndex((u) => u.id === socketId);
       if (userIndex !== -1) {
-        const isLeavingHost = room.hostId === socketId;
+        const user = room.users[userIndex];
+        
+        // Clean up any pending disconnect timer for this user
+        if (user.userId) {
+          const timerKey = `${roomId}:${user.userId}`;
+          if (this.disconnectTimers.has(timerKey)) {
+            clearTimeout(this.disconnectTimers.get(timerKey)!);
+            this.disconnectTimers.delete(timerKey);
+          }
+        }
+
+        const isLeavingHost = room.hostId === socketId || user.isHost;
         room.users.splice(userIndex, 1);
 
-        // If room becomes empty, schedule 2-minute Grace Period before deleting to allow browser refresh recovery
+        // If room becomes empty, schedule 2-minute Grace Period before deleting
         if (room.users.length === 0) {
           console.log(`⏳ Room ${roomId} is empty. Grace period timer started (2 minutes)...`);
           if (this.emptyRoomTimeouts.has(roomId)) {
@@ -219,12 +279,13 @@ export class RoomService {
         if (isLeavingHost) {
           // Reassign host to oldest connected user
           newHost = room.users.reduce((oldest, current) => (current.joinedAt < oldest.joinedAt ? current : oldest), room.users[0]);
-          
           room.hostId = newHost.id;
+          room.hostUserId = newHost.userId;
           room.users.forEach((u) => {
             u.isHost = u.id === newHost!.id;
           });
           hostChanged = true;
+          console.log(`👑 Host transferred to ${newHost.name} in room ${roomId}`);
         }
 
         return {
@@ -236,6 +297,84 @@ export class RoomService {
       }
     }
     return null;
+  }
+
+  /**
+   * Transport disconnect (e.g. browser page refresh, mobile background/lock, network glitch).
+   * Gives a 15-second grace period for the user (host or guest) to reconnect without losing host status or room state!
+   */
+  public handleDisconnect(
+    socketId: string,
+    onUserLeft: (roomId: string, disconnectedSocketId: string, room: RoomState, hostChanged: boolean, newHost?: RoomUser) => void
+  ): void {
+    for (const [roomId, room] of this.rooms.entries()) {
+      const user = room.users.find((u) => u.id === socketId);
+      if (!user) continue;
+
+      // If room only has 1 user, immediately start the 2-minute empty room grace period
+      if (room.users.length === 1) {
+        console.log(`⏳ Solo user disconnected from room ${roomId}. Grace period timer started (2 minutes)...`);
+        if (this.emptyRoomTimeouts.has(roomId)) {
+          clearTimeout(this.emptyRoomTimeouts.get(roomId)!);
+        }
+        const timeout = setTimeout(() => {
+          console.log(`🗑️ Grace period expired for room ${roomId}. Deleting room.`);
+          this.rooms.delete(roomId);
+          this.emptyRoomTimeouts.delete(roomId);
+        }, 120000);
+        this.emptyRoomTimeouts.set(roomId, timeout);
+        return;
+      }
+
+      // Room has other connected users.
+      // Give a 15-second grace period for this user (host or guest) to reconnect (e.g. page refresh)
+      const timerKey = `${roomId}:${user.userId || socketId}`;
+      if (this.disconnectTimers.has(timerKey)) {
+        clearTimeout(this.disconnectTimers.get(timerKey)!);
+      }
+
+      const isHost = room.hostId === socketId || user.isHost;
+      console.log(`⏳ User "${user.name}" (${user.userId || socketId}, isHost: ${isHost}) disconnected from room ${roomId}. Starting 15s reconnection grace period...`);
+
+      const timeout = setTimeout(() => {
+        this.disconnectTimers.delete(timerKey);
+
+        const userIndex = room.users.findIndex((u) => (user.userId && u.userId === user.userId) || u.id === socketId);
+        if (userIndex === -1) return;
+
+        const userToRemove = room.users[userIndex];
+        // If the user reconnected in the meantime with a new socketId, don't remove!
+        if (userToRemove.id !== socketId) {
+          console.log(`✅ User "${userToRemove.name}" already reconnected with new socket ${userToRemove.id}. Grace period cancelled.`);
+          return;
+        }
+
+        console.log(`🚪 Reconnection grace period expired for "${userToRemove.name}" in room ${roomId}. Removing user.`);
+        room.users.splice(userIndex, 1);
+
+        let hostChanged = false;
+        let newHost: RoomUser | undefined;
+
+        if (isHost && room.users.length > 0) {
+          newHost = room.users.reduce((oldest, current) => (current.joinedAt < oldest.joinedAt ? current : oldest), room.users[0]);
+          room.hostId = newHost.id;
+          room.hostUserId = newHost.userId;
+          room.users.forEach((u) => {
+            u.isHost = u.id === newHost!.id;
+          });
+          hostChanged = true;
+          console.log(`👑 Host transferred to ${newHost.name} in room ${roomId}`);
+        }
+
+        const calculatedRoom = this.getCalculatedRoomState(roomId);
+        if (calculatedRoom) {
+          onUserLeft(roomId, socketId, calculatedRoom, hostChanged, newHost);
+        }
+      }, 15000); // 15 seconds grace period for page refresh / reconnection
+
+      this.disconnectTimers.set(timerKey, timeout);
+      return;
+    }
   }
 
   public isHost(roomId: string, socketId: string): boolean {
