@@ -11,6 +11,7 @@ import { RoomUsers } from '../components/RoomUsers';
 import { Chat } from '../components/Chat';
 import { Toast } from '../components/Toast';
 import { useYouTubePlayer } from '../hooks/useYouTubePlayer';
+import { useMediaSession } from '../hooks/useMediaSession';
 import { searchYouTube } from '../services/api';
 
 interface RoomProps {
@@ -83,6 +84,18 @@ export const Room: React.FC<RoomProps> = ({
     canControlPlayback,
     onStateChangeByHost: onSendPlaybackAction,
     onVideoEnd: onNextTrack,
+  });
+
+  // Media Session API — notification bar controls on mobile (play/pause/next from lock screen)
+  useMediaSession({
+    playback: roomState.playback,
+    isPlaying,
+    currentTime,
+    duration,
+    onPlay: play,
+    onPause: pause,
+    onNextTrack,
+    onSeek: seek,
   });
 
   // Execute Search

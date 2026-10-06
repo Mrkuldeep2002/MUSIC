@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 const SOCKET_SERVER_URL = window.location.origin;
@@ -10,8 +10,9 @@ export function useSocket() {
   useEffect(() => {
     const socket = io(SOCKET_SERVER_URL, {
       transports: ['polling', 'websocket'],
-      reconnectionAttempts: 20,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 10000,
       path: '/socket.io/',
     });
 
@@ -25,6 +26,21 @@ export function useSocket() {
     socket.on('disconnect', (reason) => {
       console.warn('⚠️ Disconnected from Socket.IO server:', reason);
       setIsConnected(false);
+    });
+
+    // Handle successful reconnection — auto-rejoin last room
+    socket.io.on('reconnect', (attemptNumber: number) => {
+      console.log(`🔄 Socket reconnected after ${attemptNumber} attempt(s). New socket ID: ${socket.id}`);
+      setIsConnected(true);
+
+      // Auto-rejoin room if user was previously in one
+      const savedRoomId = localStorage.getItem('wesync_room_id');
+      const savedUserName = localStorage.getItem('wesync_user_name') || '';
+
+      if (savedRoomId) {
+        console.log(`🔄 Auto-rejoining room ${savedRoomId} after reconnect...`);
+        socket.emit('room:join', { roomId: savedRoomId, name: savedUserName });
+      }
     });
 
     return () => {

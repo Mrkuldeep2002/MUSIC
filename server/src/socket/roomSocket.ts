@@ -4,9 +4,10 @@ import { PlaylistItem } from '../types/room.js';
 
 export function setupRoomSocket(io: Server, socket: Socket): void {
   // Create Room
-  socket.on('room:create', (payload: { userName?: string }) => {
+  socket.on('room:create', (payload: { userName?: string; name?: string }) => {
     try {
-      const { room, user } = roomService.createRoom(socket.id, payload?.userName);
+      const userName = payload?.userName || payload?.name;
+      const { room, user } = roomService.createRoom(socket.id, userName);
       socket.join(room.roomId);
       
       socket.emit('room:created', { room, user });

@@ -27,7 +27,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
 
     const params = new URLSearchParams(window.location.search);
     const urlRoomId = params.get('room')?.toUpperCase();
-    const savedRoomId = sessionStorage.getItem('wesync_room_id') || urlRoomId;
+    const savedRoomId = localStorage.getItem('wesync_room_id') || urlRoomId;
     const savedUserName = localStorage.getItem('wesync_user_name') || '';
 
     if (savedRoomId && !roomState) {
@@ -35,6 +35,28 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
       socket.emit('room:join', { roomId: savedRoomId, name: savedUserName });
     }
   }, [socket, isConnected]);
+
+  // Mobile: Handle tab visibility change (browser backgrounded → foregrounded)
+  // Mobile browsers suspend WebSocket connections when tab is hidden. When user returns,
+  // socket may have reconnected with a new ID but room state is stale.
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && socket.connected) {
+        const savedRoomId = localStorage.getItem('wesync_room_id');
+        const savedUserName = localStorage.getItem('wesync_user_name') || '';
+
+        if (savedRoomId) {
+          console.log(`👁️ Tab became visible again. Re-syncing room ${savedRoomId}...`);
+          socket.emit('room:join', { roomId: savedRoomId, name: savedUserName });
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [socket]);
 
   // Register socket event handlers
   useEffect(() => {
@@ -45,7 +67,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
       setRoomState(data.room);
       setCurrentUser(data.user);
       if (data.room.messages) setChatMessages(data.room.messages);
-      sessionStorage.setItem('wesync_room_id', data.room.roomId);
+      localStorage.setItem('wesync_room_id', data.room.roomId);
       if (data.user.name) localStorage.setItem('wesync_user_name', data.user.name);
       window.history.replaceState({}, '', `/?room=${data.room.roomId}`);
       showToast(`Room ${data.room.roomId} created! You are the host.`, 'success');
@@ -56,7 +78,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
       setRoomState(data.room);
       setCurrentUser(data.user);
       if (data.room.messages) setChatMessages(data.room.messages);
-      sessionStorage.setItem('wesync_room_id', data.room.roomId);
+      localStorage.setItem('wesync_room_id', data.room.roomId);
       if (data.user.name) localStorage.setItem('wesync_user_name', data.user.name);
       window.history.replaceState({}, '', `/?room=${data.room.roomId}`);
       showToast(`Joined room ${data.room.roomId}!`, 'success');
@@ -141,7 +163,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
     // Kicked by host
     socket.on('room:kicked', (data: { message: string }) => {
       showToast(data.message, 'warning');
-      sessionStorage.removeItem('wesync_room_id');
+      localStorage.removeItem('wesync_room_id');
       window.history.replaceState({}, '', '/');
       setRoomState(null);
       setCurrentUser(null);
@@ -194,7 +216,7 @@ export function useRoom({ socket, isConnected }: UseRoomProps) {
   const leaveRoom = useCallback(() => {
     if (!socket) return;
     socket.emit('room:leave');
-    sessionStorage.removeItem('wesync_room_id');
+    localStorage.removeItem('wesync_room_id');
     window.history.replaceState({}, '', '/');
     setRoomState(null);
     setCurrentUser(null);

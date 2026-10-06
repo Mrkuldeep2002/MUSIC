@@ -105,22 +105,26 @@ export class RoomService {
       this.emptyRoomTimeouts.delete(room.roomId);
     }
 
-    // Check if user already in room
+    // Check if user already in room (by socket ID — won't match after reconnect with new socket ID)
     let user = room.users.find((u) => u.id === socketId);
     if (!user) {
       const userName = customName && customName.trim() ? customName.trim() : generateRandomName();
+
+      // If room is empty (grace period recovery), the reconnecting user should become host
+      const shouldBeHost = room.users.length === 0;
+
       user = {
         id: socketId,
         name: userName,
-        isHost: room.users.length === 0 || room.hostId === socketId,
+        isHost: shouldBeHost,
         joinedAt: Date.now(),
       };
       room.users.push(user);
-    }
 
-    if (user.isHost || room.users.length === 1) {
-      room.hostId = socketId;
-      user.isHost = true;
+      // Update hostId if this user is becoming the host
+      if (shouldBeHost) {
+        room.hostId = socketId;
+      }
     }
 
     return { room: this.getCalculatedRoomState(room.roomId)!, user };
